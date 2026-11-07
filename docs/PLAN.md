@@ -133,18 +133,18 @@ A decision holds `decision` (`approve`, `decline` or `refer`), `payout`, `reason
 
 ## Phase 6: Live steps, sign-off and end-to-end tests
 
-**Builds:** the claim page polls the claim and its steps while the agent works and shows each step as it happens. A claim awaiting sign-off shows the payout, a handler picker and a Sign off button. The Playwright tests run the full flow with a stub model, chosen by `MODEL_NAME=stub` in the test server only, so they never call a model. `docs/STATUS.md` describes what's built and how to run it.
+**Builds:** the claim page polls the claim and its steps while the agent works and shows each step as it happens. A claim awaiting sign-off shows the payout, a handler picker and a Sign off button. The Playwright tests run the full flow with a stub model, chosen by `MODEL_NAME=stub` in the test server only, so they never call a model. They start their own backend, database and dashboard on other ports, so they never touch the dev servers. `docs/STATUS.md` describes what's built and how to run it.
 
 **Why last:** this joins the agent, the backend and the dashboard, and the end-to-end tests check the whole pilot together.
 
 **Success criteria:**
 
-- [ ] A Playwright test runs the agent on a claim from the dashboard and sees the steps appear and the claim reach decided
-- [ ] A Playwright test takes a claim to awaiting sign-off, signs off as a handler and sees it decided with the payment and the handler's name
-- [ ] A Playwright test opens the instructions page
-- [ ] The Playwright MCP server shows a real run on one claim with its steps appearing live and its decision and reasons at the end
-- [ ] `docs/STATUS.md` says what's built and how to run it
-- [ ] `npm run check` passes: ruff, pyright, pytest, ESLint, Prettier, tsc, vitest and Playwright
+- [x] A Playwright test runs the agent on a claim from the dashboard and sees the steps appear and the claim reach decided
+- [x] A Playwright test takes a claim to awaiting sign-off, signs off as a handler and sees it decided with the payment and the handler's name
+- [x] A Playwright test opens the instructions page
+- [x] The Playwright MCP server shows a real run on one claim with its steps appearing live and its decision and reasons at the end
+- [x] `docs/STATUS.md` says what's built and how to run it
+- [x] `npm run check` passes: ruff, pyright, pytest, ESLint, Prettier, tsc, vitest and Playwright
 
 ## Not in this plan
 

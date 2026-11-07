@@ -5,6 +5,8 @@ import {
   type Policy,
   post,
   useApi,
+  useInterval,
+  useVersion,
 } from "./api";
 import {
   ClaimStory,
@@ -13,7 +15,9 @@ import {
   PolicyPanel,
 } from "./ClaimParts";
 import { money, words } from "./format";
+import { SignOffPanel } from "./SignOff";
 import { StatusBadge } from "./StatusBadge";
+import { StepsPanel } from "./Steps";
 
 function Related({ claim }: Readonly<{ claim: Claim }>) {
   const policy = useApi<Policy>(`/api/policies/${claim.policy_id}`);
@@ -29,22 +33,31 @@ function Related({ claim }: Readonly<{ claim: Claim }>) {
 }
 
 export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
-  const [version, setVersion] = useState(0);
+  const [version, bump] = useVersion();
   const [problem, setProblem] = useState("");
+  // The thread of a run we asked for: until the claim shows it, the run has
+  // not started. Empty while the request is on its way.
+  const [launched, setLaunched] = useState<string>();
   const { data: claim, error } = useApi<Claim>(
     `/api/claims/${claimId}`,
     version,
   );
+  const live = claim?.status === "waiting" || claim?.status === "in_progress";
+  useInterval(bump, live ? 1000 : null);
   if (error) return <p role="alert">{error}</p>;
   if (!claim) return <p>Loading {claimId}</p>;
 
+  const starting = launched !== undefined && claim.thread_id !== launched;
   const runAgent = () => {
     setProblem("");
-    post(`/api/claims/${claimId}/run`).then(
-      () => {
-        setVersion((v) => v + 1);
+    setLaunched("");
+    post<{ thread_id: string }>(`/api/claims/${claimId}/run`).then(
+      (run) => {
+        setLaunched(run.thread_id);
+        bump();
       },
       (failure: unknown) => {
+        setLaunched(undefined);
         setProblem(String(failure));
       },
     );
@@ -64,8 +77,8 @@ export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
         </div>
         <StatusBadge status={claim.status} />
         {claim.status === "waiting" && (
-          <button type="button" onClick={runAgent}>
-            Run the agent
+          <button type="button" onClick={runAgent} disabled={starting}>
+            {starting ? "Starting the agent" : "Run the agent"}
           </button>
         )}
       </header>
@@ -75,7 +88,11 @@ export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
           <ClaimStory claim={claim} />
         </div>
         <div className="stack">
+          {claim.status === "awaiting_signoff" && (
+            <SignOffPanel claim={claim} onSigned={bump} />
+          )}
           <DecisionPanel claim={claim} />
+          <StepsPanel claimId={claimId} version={version} />
           <Related claim={claim} />
         </div>
       </div>

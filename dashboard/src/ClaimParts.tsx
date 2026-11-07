@@ -1,5 +1,5 @@
 import type { Claim, ClaimHistory, Policy } from "./api";
-import { date, money, words } from "./format";
+import { date, money, when, words } from "./format";
 
 export function DecisionPanel({ claim }: Readonly<{ claim: Claim }>) {
   const { decision, payment, sign_off } = claim;
@@ -25,7 +25,7 @@ export function DecisionPanel({ claim }: Readonly<{ claim: Claim }>) {
       {payment && (
         <p>
           Paid <span className="mono">{money(payment.amount)}</span> on{" "}
-          {date(payment.paid_at)}
+          {when(payment.paid_at)}
         </p>
       )}
       {sign_off && <p>Signed off by {sign_off.handler_name}</p>}

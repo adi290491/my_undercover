@@ -1,9 +1,14 @@
-import { type ClaimSummary, useApi } from "./api";
+import { type ClaimSummary, useApi, useInterval, useVersion } from "./api";
 import { date, money, STATUS_LABELS, STATUSES, words } from "./format";
 import { StatusBadge } from "./StatusBadge";
 
 export function Queue() {
-  const { data: claims, error } = useApi<ClaimSummary[]>("/api/claims");
+  const [version, bump] = useVersion();
+  useInterval(bump, 2000);
+  const { data: claims, error } = useApi<ClaimSummary[]>(
+    "/api/claims",
+    version,
+  );
   if (error) return <p role="alert">{error}</p>;
   if (!claims) return <p>Loading the queue</p>;
 

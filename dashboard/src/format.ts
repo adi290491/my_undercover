@@ -10,17 +10,25 @@ const day = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-const time = new Intl.DateTimeFormat("en-US", {
-  timeStyle: "medium",
-  timeZone: "UTC",
+const time = new Intl.DateTimeFormat("en-US", { timeStyle: "medium" });
+
+const moment = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
 });
 
 export function money(amount: number): string {
   return dollars.format(amount);
 }
 
+// A calendar date from the records, such as 2026-06-24, shown as written.
 export function date(iso: string): string {
   return day.format(new Date(iso));
+}
+
+// A moment the system recorded, shown in the viewer's time zone.
+export function when(iso: string): string {
+  return moment.format(new Date(iso));
 }
 
 export function clock(iso: string): string {

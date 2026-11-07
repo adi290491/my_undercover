@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type Status = "waiting" | "in_progress" | "awaiting_signoff" | "decided";
 
@@ -144,4 +144,22 @@ export function useApi<T>(path: string, version = 0): Loaded<T> {
     };
   }, [path, version]);
   return loaded;
+}
+
+export function useInterval(callback: () => void, ms: number | null) {
+  useEffect(() => {
+    if (ms === null) return;
+    const id = setInterval(callback, ms);
+    return () => {
+      clearInterval(id);
+    };
+  }, [callback, ms]);
+}
+
+export function useVersion(): [number, () => void] {
+  const [version, setVersion] = useState(0);
+  const bump = useCallback(() => {
+    setVersion((v) => v + 1);
+  }, []);
+  return [version, bump];
 }
