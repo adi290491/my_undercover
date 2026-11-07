@@ -124,12 +124,12 @@ A decision holds `decision` (`approve`, `decline` or `refer`), `payout`, `reason
 
 **Success criteria:**
 
-- [ ] Vitest tests cover the queue, the claim page and the instructions page against stubbed fetches
-- [ ] With `npm run dev` running, the Playwright MCP server shows the queue with 25 claims and their state counts, in both light and dark mode
-- [ ] The Playwright MCP server shows CLM-1001 with its story, items, documents, policy and history, and money as $420.00
-- [ ] The Playwright MCP server shows the instructions page with no way to edit them
-- [ ] The page has no horizontal scroll at phone width
-- [ ] `npm run check:ts` passes with coverage of 80% or more
+- [x] Vitest tests cover the queue, the claim page and the instructions page against stubbed fetches
+- [x] With `npm run dev` running, the Playwright MCP server shows the queue with 25 claims and their state counts, in both light and dark mode
+- [x] The Playwright MCP server shows CLM-1001 with its story, items, documents, policy and history, and money as $420.00
+- [x] The Playwright MCP server shows the instructions page with no way to edit them
+- [x] The page has no horizontal scroll at phone width
+- [x] `npm run check:ts` passes with coverage of 80% or more
 
 ## Phase 6: Live steps, sign-off and end-to-end tests
 

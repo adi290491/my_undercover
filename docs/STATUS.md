@@ -1,12 +1,12 @@
 # Status
 
-The pilot is being built from `docs/PLAN.md`. Phases done: 4 of 6.
+The pilot is being built from `docs/PLAN.md`. Phases done: 5 of 6.
 
 ## What's built
 
 - `backend/`: FastAPI on SQLite. The database `backend/undercover.db` is seeded from `data/` on first start (never from `data/evals/` or `data/security/`). Read routes for claims, policies, plans, claim history, the policy wording, the agent's instructions (`backend/instructions.md`) and handlers. Workflow routes to start a claim, record steps, record a decision, pay and sign off. A claim is `waiting`, `in_progress`, `awaiting_signoff` or `decided`, and a payout over $1,000 (from `data/company.json`) can only be paid by a handler's sign-off.
 - `agent/`: the UnderCover Agent, `run(claim_id, thread_id)`, on LangChain's `create_agent` with OpenRouter. It reads its instructions from the backend and has seven tools that call the backend's API (no sign-off tool). Each tool call and result is posted to the backend as a step. `MODEL_NAME=stub` swaps in a scripted model for tests. The backend's `run_agent` route starts it in the background; if a run fails, the claim goes back to `waiting`.
-- `dashboard/`: one page that shows whether the backend is up.
+- `dashboard/`: React pages in the brand's fonts and colors, light and dark: the queue with counts by status, each claim in full (story, items, documents, policy, claim history, decision, payment) with a Run the agent button, and the agent's instructions, read only. Pages are hash routes: `#/`, `#/claims/CLM-1001`, `#/instructions`.
 - `e2e/`: one test of that page.
 
 ## How to run it
