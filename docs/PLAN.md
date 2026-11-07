@@ -36,6 +36,7 @@ Every operation has an `operation_id`, a one-line docstring and no optional inpu
 | `record_decision` | `POST /api/claims/{claim_id}/decision` | agent |
 | `pay_claim` | `POST /api/claims/{claim_id}/payment` | agent |
 | `sign_off` | `POST /api/claims/{claim_id}/sign-off` | dashboard |
+| `release_claim` | `POST /api/claims/{claim_id}/release` | agent runner, when a run fails |
 | `run_agent` | `POST /api/claims/{claim_id}/run` | dashboard |
 
 A decision holds `decision` (`approve`, `decline` or `refer`), `payout`, `reason` (two or three sentences) and `policy_section` (such as "Section 3, Trip Delay"). `pay_claim` takes the amount, and the amount must match the approved payout.
@@ -105,11 +106,11 @@ A decision holds `decision` (`approve`, `decline` or `refer`), `payout`, `reason
 
 **Success criteria:**
 
-- [ ] With a stub model, `POST /api/claims/CLM-1001/run` returns 202 with the thread id, and the claim moves to `in_progress` and then `decided`
-- [ ] `run_agent` on a claim that isn't `waiting` returns 409
-- [ ] If the agent fails partway, the failure is recorded as a step and the claim goes back to `waiting`, so it can be run again
-- [ ] With a stub model, `uv run -m agent queue` logic decides every waiting claim in a test with three claims
-- [ ] `npm run check:python` passes
+- [x] With a stub model, `POST /api/claims/CLM-1001/run` returns 202 with the thread id, and the claim moves to `in_progress` and then `decided`
+- [x] `run_agent` on a claim that isn't `waiting` returns 409
+- [x] If the agent fails partway, the failure is recorded as a step and the claim goes back to `waiting` with any unpaid decision dropped, so it can be run again
+- [x] With a stub model, `uv run -m agent queue` decides every waiting claim in the seeded queue and leaves a claim already in progress alone
+- [x] `npm run check:python` passes
 
 ## Phase 5: The dashboard
 

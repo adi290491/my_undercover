@@ -6,9 +6,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 
+from agent import main as agent
 from backend.db import DATA_DIR, connect, db_path, seed
 from backend.models import (
     Claim,
@@ -299,3 +301,24 @@ def sign_off(claim_id: str, sign_off: NewSignOff) -> Claim:
             (now(), claim_id),
         )
         return load_claim(connection, claim_id)
+
+
+@app.post("/api/claims/{claim_id}/release", operation_id="release_claim")
+def release_claim(claim_id: str) -> Claim:
+    """Put a claim in progress back in the queue, dropping any unpaid decision."""
+    with connect() as connection:
+        move(connection, claim_id, "in_progress", "waiting")
+        connection.execute("DELETE FROM decisions WHERE claim_id = ?", (claim_id,))
+        return load_claim(connection, claim_id)
+
+
+@app.post("/api/claims/{claim_id}/run", operation_id="run_agent", status_code=202)
+def run_agent(claim_id: str, background: BackgroundTasks) -> Start:
+    """Start the UnderCover Agent on a waiting claim, in the background."""
+    with connect() as connection:
+        claim = load_claim(connection, claim_id)
+    if claim.status != "waiting":
+        raise HTTPException(409, f"Claim {claim_id} is {claim.status}, not waiting")
+    start = Start(thread_id=str(uuid4()))
+    background.add_task(agent.run, claim_id, start.thread_id)
+    return start

@@ -194,3 +194,22 @@ def test_sign_off_by_handler_without_authority(client):
     start(client)
     decide(client, payout=1500.0)
     assert sign(client, "HND-03").status_code == 403
+
+
+def test_release_puts_a_claim_back_in_the_queue(client):
+    start(client)
+    decide(client)
+    claim = client.post("/api/claims/CLM-1001/release").json()
+    assert claim["status"] == "waiting"
+    assert claim["decision"] is None
+
+
+def test_release_leaves_a_decided_claim_alone(client):
+    start(client)
+    decide(client, "decline", 0)
+    assert client.post("/api/claims/CLM-1001/release").status_code == 409
+
+
+def test_run_agent_needs_a_waiting_claim(client):
+    start(client)
+    assert client.post("/api/claims/CLM-1001/run").status_code == 409

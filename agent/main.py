@@ -2,7 +2,9 @@
 
 import json
 import os
+from collections.abc import Iterator
 from typing import Literal
+from uuid import uuid4
 
 import httpx
 from dotenv import load_dotenv
@@ -15,7 +17,7 @@ from pydantic import SecretStr
 
 from agent.stub import StubModel
 
-load_dotenv(override=True)
+load_dotenv()
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_MODEL = "openai/gpt-6-luna"
@@ -134,11 +136,17 @@ def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:
         client.post(
             f"/api/claims/{claim_id}/start", json={"thread_id": thread_id}
         ).raise_for_status()
-    agent = create_agent(
-        llm or model(),
-        tools=tools_for(claim_id),
-        system_prompt=instructions["instructions"],
-    )
+    try:
+        return work(claim_id, thread_id, llm or model(), instructions["instructions"])
+    except Exception as error:
+        record_step(claim_id, "error", f"The agent stopped: {error}")
+        # Back in the queue, unless the claim already got past in progress.
+        call("POST", f"/api/claims/{claim_id}/release")
+        raise
+
+
+def work(claim_id: str, thread_id: str, llm: BaseChatModel, instructions: str) -> str:
+    agent = create_agent(llm, tools=tools_for(claim_id), system_prompt=instructions)
     reply = ""
     updates = agent.stream(
         {"messages": [{"role": "user", "content": f"Please decide claim {claim_id}."}]},
@@ -153,3 +161,12 @@ def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:
                 if isinstance(message, AIMessage):
                     reply = message.text
     return reply
+
+
+def work_queue() -> Iterator[tuple[str, str]]:
+    """Run the agent on every waiting claim in turn, yielding each reply."""
+    with backend() as client:
+        claims = client.get("/api/claims").raise_for_status().json()
+    for claim in claims:
+        if claim["status"] == "waiting":
+            yield claim["claim_id"], run(claim["claim_id"], str(uuid4()))
