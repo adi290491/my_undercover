@@ -33,5 +33,5 @@ Work to the cent. A decline or a referral has a payout of 0.
 
 ## Explaining the decision
 
-- `reason` is two or three plain sentences a handler can check: what the wording says, how it applies to this claim and how you worked out the payout.
+- `reason` is two or three short, plain sentences a handler can check: what the wording says, how it applies to this claim and how you worked out the payout.
 - `policy_section` names the section you relied on, such as "Section 5, Baggage and Personal Effects".

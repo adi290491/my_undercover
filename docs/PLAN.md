@@ -89,13 +89,13 @@ A decision holds `decision` (`approve`, `decline` or `refer`), `payout`, `reason
 
 **Success criteria:**
 
-- [ ] With a stub model, a test runs a claim through `get_claim`, `get_policy`, `get_policy_wording`, `record_decision` and `pay_claim`, and the claim ends `decided` with the steps recorded
-- [ ] With a stub model that approves $1,500 and then calls `pay_claim`, the payment is refused, the refusal is a recorded step and the claim ends `awaiting_signoff`
-- [ ] A test confirms the agent's tools are exactly the seven above, with no sign-off tool
-- [ ] A test confirms the system prompt is the text from `get_instructions`
-- [ ] The model choice tests still pass for the default and for `MODEL_NAME`
-- [ ] `uv run -m agent CLM-1001` with the real model ends with CLM-1001 decided, a reason of two or three sentences and a policy section (one real call, a few cents)
-- [ ] `npm run check:python` passes
+- [x] With a stub model, a test runs a claim through `get_claim`, `get_policy`, `get_policy_wording`, `record_decision` and `pay_claim`, and the claim ends `decided` with the steps recorded
+- [x] With a stub model that approves $1,500 and then calls `pay_claim`, the payment is refused, the refusal is a recorded step and the claim ends `awaiting_signoff`
+- [x] A test confirms the agent's tools are exactly the seven above, with no sign-off tool
+- [x] A test confirms the system prompt is the text from `get_instructions`
+- [x] The model choice tests still pass for the default and for `MODEL_NAME`
+- [x] `uv run -m agent CLM-1001` with the real model ends with CLM-1001 decided, a reason of two or three sentences and a policy section (one real call, a few cents)
+- [x] `npm run check:python` passes
 
 ## Phase 4: Running the agent from the backend
 
