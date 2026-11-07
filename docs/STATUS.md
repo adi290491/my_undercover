@@ -1,10 +1,10 @@
 # Status
 
-The pilot is being built from `docs/PLAN.md`. Phases done: 1 of 6.
+The pilot is being built from `docs/PLAN.md`. Phases done: 2 of 6.
 
 ## What's built
 
-- `backend/`: FastAPI on SQLite. The database `backend/undercover.db` is seeded from `data/` on first start (never from `data/evals/` or `data/security/`). Read routes for claims, policies, plans, claim history, the policy wording, the agent's instructions (`backend/instructions.md`) and handlers.
+- `backend/`: FastAPI on SQLite. The database `backend/undercover.db` is seeded from `data/` on first start (never from `data/evals/` or `data/security/`). Read routes for claims, policies, plans, claim history, the policy wording, the agent's instructions (`backend/instructions.md`) and handlers. Workflow routes to start a claim, record steps, record a decision, pay and sign off. A claim is `waiting`, `in_progress`, `awaiting_signoff` or `decided`, and a payout over $1,000 (from `data/company.json`) can only be paid by a handler's sign-off.
 - `agent/`: the skeleton entry point `run(claim_id, thread_id)`.
 - `dashboard/`: one page that shows whether the backend is up.
 - `e2e/`: one test of that page.

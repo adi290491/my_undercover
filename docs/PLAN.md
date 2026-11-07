@@ -69,17 +69,17 @@ A decision holds `decision` (`approve`, `decline` or `refer`), `payout`, `reason
 
 **Success criteria:**
 
-- [ ] `start_claim` moves a `waiting` claim to `in_progress`; on a claim that is not `waiting` it returns 409
-- [ ] `add_step` stores a step with a time, a kind (`tool_call`, `tool_result` or `message`) and text; `list_steps` returns them in order
-- [ ] `record_decision` with `decline` or `refer` and payout 0 moves the claim to `decided`
-- [ ] `record_decision` rejects a decline or refer with a payout, an approve with no payout, and a reason longer than three sentences, with 422
-- [ ] An approve of $1,000 or less leaves the claim `in_progress` until `pay_claim` with that amount, which records the payment and moves it to `decided`
-- [ ] An approve over $1,000 moves the claim to `awaiting_signoff`
-- [ ] `pay_claim` over $1,000 with no sign-off returns 403 and records no payment
-- [ ] `pay_claim` with an amount that doesn't match the approved payout returns 409
-- [ ] `sign_off` with a handler id records the handler, makes the payment and moves the claim to `decided`; with an unknown handler it returns 404; on a claim not awaiting sign-off it returns 409
-- [ ] `GET /api/claims/{id}` includes the decision, the payment and the sign-off when there are any
-- [ ] `npm run check:python` passes
+- [x] `start_claim` moves a `waiting` claim to `in_progress` and records its thread id; on a claim that is not `waiting` it returns 409
+- [x] `add_step` stores a step with a time, a kind (`tool_call`, `tool_result`, `message` or `error`) and text; `list_steps` returns them in order
+- [x] `record_decision` with `decline` or `refer` and payout 0 moves the claim to `decided`
+- [x] `record_decision` rejects a decline or refer with a payout, an approve with no payout, and a reason longer than three sentences, with 422
+- [x] An approve of $1,000 or less leaves the claim `in_progress` until `pay_claim` with that amount, which records the payment and moves it to `decided`
+- [x] An approve over $1,000 moves the claim to `awaiting_signoff`
+- [x] `pay_claim` over $1,000 with no sign-off returns 403 and records no payment
+- [x] `pay_claim` with an amount that doesn't match the approved payout returns 409
+- [x] `sign_off` with a handler id records the handler, makes the payment and moves the claim to `decided`; with an unknown handler it returns 404; on a claim not awaiting sign-off it returns 409
+- [x] `GET /api/claims/{id}` includes the decision, the payment and the sign-off when there are any
+- [x] `npm run check:python` passes
 
 ## Phase 3: The UnderCover Agent
 
