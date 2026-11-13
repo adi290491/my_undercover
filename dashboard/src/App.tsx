@@ -1,38 +1,44 @@
-import { ClaimPage } from "./ClaimPage";
-import { Instructions } from "./Instructions";
 import { Queue } from "./Queue";
-import { useRoute } from "./router";
+import { links, useRoute, type Route } from "./router";
+
+function Page({ route }: Readonly<{ route: Route }>) {
+  if (route.page === "queue") return <Queue />;
+  return (
+    <p className="notice">
+      There's no page here. <a href={links.queue}>Back to the queue</a>
+    </p>
+  );
+}
 
 export function App() {
   const route = useRoute();
   return (
-    <>
+    <div className="page">
       <header className="masthead">
-        <a className="wordmark" href="#/">
-          UnderCover <span className="tagline">Claims desk</span>
-        </a>
+        <div>
+          <a className="brand-name" href={links.queue}>
+            UnderCover
+          </a>
+          <p className="tagline">Travel claims, handled straight through</p>
+        </div>
         <nav aria-label="Main">
           <a
-            href="#/"
+            href={links.queue}
             aria-current={route.page === "queue" ? "page" : undefined}
           >
             Queue
           </a>
           <a
-            href="#/instructions"
+            href={links.instructions}
             aria-current={route.page === "instructions" ? "page" : undefined}
           >
-            Agent instructions
+            Instructions
           </a>
         </nav>
       </header>
       <main>
-        {route.page === "queue" && <Queue />}
-        {route.page === "claim" && (
-          <ClaimPage key={route.claimId} claimId={route.claimId} />
-        )}
-        {route.page === "instructions" && <Instructions />}
+        <Page route={route} />
       </main>
-    </>
+    </div>
   );
 }

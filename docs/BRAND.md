@@ -4,28 +4,29 @@
 
 From Google Fonts:
 
-- **Headings and body**: Instrument Sans
-- **Accent (a tagline or a quote)**: Instrument Serif
-- **Code, numbers and identifiers**: JetBrains Mono
+- **Headings and body**: Montserrat Bold
+- **Body**: Lato Regular
+- **Accent (a tagline or a quote)**: Playfair Display Italic
+- **Code, numbers and identifiers**: Montserrat Semibold
 
 ## Colors
 
-- **Primary**: Sea Green `#06D6A0`, Midnight text
-- **Secondary**: Marigold `#FFC145`, Midnight text
-- **Tertiary**: Coral `#F78C6B`, Midnight text
-- **Information**: Cerulean `#118AB2`, white text
-- **Highlight or alert**: Raspberry `#EF476F`, white text
-- **Ink on light backgrounds**: Midnight `#073B4C`
-- **Ink on dark backgrounds**: Sea Mist `#CDD8DB`
+- **Primary**: Sky Blue `#0B63CE`, Montserrat Bold
+- **Secondary**: Ocean Cyan `#00B4D8`, Montserrat Medium
+- **Tertiary**: Travel Purple `#8B5CF6`, Montserrat Medium
+- **Information**: Info Blue `#E0F2FE`, Lato Regular
+- **Highlight or alert**: Alert Orange `#F97316`, Montserrat SemiBold
+- **Ink on light backgrounds**: Deep Ink `#0F172A` Lato Regular
+- **Ink on dark backgrounds**: Light Ink `#F8FAFC` Lato Regular
 
-Use Sea Green, Marigold and Coral when three things sit side by side, such as a claim's states or chart series. Add Cerulean fourth and Raspberry fifth.
+Use Sky Blue, Ocean Cyan and Travel Purple when three things sit side by side, such as a claim's states or chart series. Add Info Blue fourth and Alert Orange fifth.
 
 ## Surfaces
 
-- **Light mode**: page background `#F0F4F5`, white panels and cards
-- **Dark mode**: page background `#04232E`, black panels and cards
+- **Light mode**: page background `#F8FAFC`, white panels and cards
+- **Dark mode**: page background `#0B1220`, black panels and cards
 
-Panels are rounded with no outline. Sea Green and Marigold are too bright for small text, so darken them for headings and body text on light backgrounds and lighten them on dark ones.
+Panels are rounded with no outline. Sky Blue and Ocean Cyan are too bright for small text, so darken them for headings and body text on light backgrounds and lighten them on dark ones.
 
 ## Avoid
 

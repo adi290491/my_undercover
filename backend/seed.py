@@ -1,7 +1,7 @@
-"""Rebuild the UnderCover database from data/."""
+"""Rebuild the database from data/, with every claim waiting."""
 
-from backend.db import db_path, seed
+from backend import db
 
 if __name__ == "__main__":
-    seed()
-    print(f"Seeded {db_path()}")
+    count = db.seed()
+    print(f"Seeded {db.db_path()} with {count} claims, all waiting.")

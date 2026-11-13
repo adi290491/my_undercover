@@ -1,8 +1,6 @@
 import type { Status } from "./api";
-import { STATUS_LABELS } from "./format";
+import { statusLabel } from "./format";
 
 export function StatusBadge({ status }: Readonly<{ status: Status }>) {
-  return (
-    <span className={`badge status-${status}`}>{STATUS_LABELS[status]}</span>
-  );
+  return <span className={`badge ${status}`}>{statusLabel(status)}</span>;
 }

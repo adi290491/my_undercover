@@ -1,152 +1,262 @@
 # Plan: the claims pilot
 
-This plan builds the pilot in `docs/SPEC.md`: a backend that holds the claims queue, the UnderCover Agent that decides claims through the backend's API, and a dashboard where handlers watch the queue, read decisions, follow the agent step by step, read its instructions and sign off large payouts.
+This plan builds the pilot in `docs/SPEC.md`, starting from the skeleton on `main`. It has three parts. The backend holds the claims queue and enforces the rules. The UnderCover Agent decides claims through the backend's API. The dashboard lets handlers watch the queue, read each claim and its decision, follow the agent step by step, read its instructions and sign off large payouts. The dashboard uses the brand in `docs/BRAND.md`, and the unit tests live in `tests/`, as `docs/TECH_STACK.md` now asks.
 
-It is built in six phases. Each one leaves the product working and checked, and the next builds on it.
+It is built in six phases. Each phase adds to the backend and the dashboard together, so there is something to look at from Phase 1, starting with the new brand. Each phase leaves `npm run check` green.
+
+## Starting again
+
+This branch already holds an earlier build of the pilot (commits `0d5831d` to `1672de4`). This plan replaces that build rather than editing it:
+
+- Phase 1 starts by resetting `backend/`, `agent/`, `dashboard/`, `e2e/`, `playwright.config.ts` and `docs/STATUS.md` to the skeleton on `main`, and by deleting the local `backend/undercover.db`. The earlier build stays in this branch's history for comparison.
+- The updated `docs/BRAND.md`, the updated `docs/TECH_STACK.md` and this plan go into Phase 1's commit.
+- Your changes to `labs/week1day2.ipynb` and `labs/week1day4.ipynb` stay out of every commit.
 
 ## Key decisions
 
-- **The backend is the only door.** The agent never reads `data/` or the database. It reaches claims, policies, claim history, the policy wording and its own instructions through the backend's API, as `docs/TECH_STACK.md` asks. That makes the backend the one place that enforces the rules.
-- **The $1,000 rule is enforced in the backend, not the prompt.** `pay_claim` refuses any payment over the limit until a handler has signed off, whatever the agent does. The prompt mentions the rule, but nothing depends on the model following it.
-- **The answer key is never loaded.** The seed reads only the queue's records. It never reads `data/evals/` or `data/security/`, so no endpoint can serve them. A test checks that.
-- **The agent sees only what it needs.** Claim history comes from its own operation, which returns past claims without the customer's email, phone, address or date of birth.
-- **The policy wording is the reference, the claims manual is left out**, as the spec says for the pilot. The agent's instructions live in the backend (`backend/instructions.md`), so the dashboard and the agent read the same text.
-- **Steps are recorded by the agent's runner, not by the model.** The entry point streams the agent's updates and posts each tool call and result to the backend. The model can't skip or invent a step, and the dashboard polls the claim to show them while it works.
-- **The claim states** are `waiting`, `in_progress`, `awaiting_signoff` and `decided`. The data's `open` becomes `waiting` on seeding. Declined and referred claims are `decided`. An approval of $1,000 or less is paid straight away and becomes `decided`. An approval over $1,000 waits at `awaiting_signoff` until a handler signs off, which makes the payment.
-- **Nothing new to install.** Everything needed (FastAPI, SQLite from the standard library, LangChain, httpx, React, Vite, Playwright) is already in `pyproject.toml` and `package.json`. The dashboard uses a small hash router rather than adding a routing library.
+- **The backend is the only door, and it enforces the rules.** The agent never reads `data/` or the database. It reaches claims, policies, claim history, the policy wording and its own instructions only through the API, as the tech stack asks. Every rule then lives in one place and holds whatever the model does.
+- **The backend enforces the $1,000 rule; the prompt doesn't.** The limit comes from `payout_approval_limit` in `data/company.json`. An approval over the limit moves the claim to `awaiting_signoff`, and `pay_claim` refuses it with 403 until a handler signs off. The sign-off makes the payment itself, so nobody has a second step to forget. Only a handler with `can_approve_over_limit` can sign off; all three can today. The agent has no sign-off tool.
+- **A refused call goes back to the model; it doesn't crash the run.** When the backend refuses a tool call with 403, 409 or 422, the tool returns the status and the backend's reason as its result. The model can then read "the payment waits for a handler's sign-off" and stop, or shorten a reason that was too long and try again.
+- **The runner records the steps, not the model.** `run()` streams the agent and posts each tool call, each tool result and the final message to the backend as a step, tagged with the run's thread id. The model can't skip or invent a step, and the dashboard polls the steps to show the run live.
+- **A run never leaves a claim half done.** A run can fail, or end with the claim still in progress, for example when the model approves but never pays. Either way, the runner records an error step and releases the claim back to `waiting`, dropping any unpaid decision. A release names its thread id, so a run can only release its own claim.
+- **Each decision cites a section of the policy wording by number.** `record_decision` takes `policy_section` as a number, such as 3, and the backend rejects a number that isn't a section of `data/policy_wording.md`. The claim page shows that section's title and text under the reasons, so a handler can check the decision against the clause it rests on. The backend also requires the reason to be two or three sentences, as the spec asks.
+- **The agent sees only what it needs, and never the answer key.** The seed reads only the queue's records, never `data/evals/` or `data/security/`, so no route can serve them. Claim history has its own route, which leaves out the customer's email, phone, address and date of birth.
+- **The policy wording is the reference, and the claims manual is left out**, as the spec says for the pilot. The agent's instructions live in `backend/instructions.md`, so the agent and the dashboard read the same text.
+- **Tests never call a model.** `MODEL_NAME=stub` swaps in a scripted model, in `agent/stub.py`, that approves the claim in full and tries to pay it. The end-to-end tests run the backend with it. `.env` is loaded without overriding the environment, so the tests' `MODEL_NAME=stub` takes precedence over any `MODEL_NAME` in your `.env`.
+- **`BACKEND_URL` says where the backend is.** It defaults to `http://127.0.0.1:8000`. The agent calls it and the dashboard's dev proxy points at it, so the end-to-end tests can run a second backend on port 8001 with its own database and never touch yours.
+- **Unit tests live in `tests/`**: `tests/backend/`, `tests/agent/` and `tests/dashboard/`, with the Playwright tests staying in `e2e/`. This needs the checks pointed at the new folder in `pyproject.toml`, `lefthook.yml`, `package.json`, `dashboard/vite.config.ts`, `eslint.config.js` and `tsconfig.json`. Nothing is loosened:
+  - The 80% thresholds stay.
+  - Coverage is still measured on `backend/`, `agent/` and `dashboard/src/`.
+  - The tests are still linted and type-checked.
+  - The two test-only ruff ignores (`S101` for asserts and `PLR2004` for literal numbers) move with the tests.
+- **Nothing new to install.** FastAPI, SQLite from the standard library, LangChain, httpx, React, Vite, Testing Library and Playwright are already in `pyproject.toml` and `package.json`. The dashboard uses hash routes (`#/`, `#/claims/CLM-1001`, `#/instructions`) and polling, not a router library or websockets.
+
+## Reading the brand
+
+`docs/BRAND.md` leaves a few points open, so the dashboard reads it like this:
+
+- **Fonts.** Montserrat Bold for headings, labels and buttons. Lato Regular for running text, such as the customer's story. Playfair Display Italic for the tagline only. Montserrat SemiBold for claim ids and amounts, with tabular figures so the columns line up. All from Google Fonts.
+- **The four claim states** take the first four colors in the order the brand gives: decided is Sky Blue, in progress is Ocean Cyan, awaiting sign-off is Travel Purple and waiting is Info Blue.
+- **Text on color.** The color list names a font for each color but no text color, so each badge uses whichever ink reaches at least 4.5:1 contrast on it. That means white on Sky Blue, and Deep Ink on Ocean Cyan, Info Blue and Alert Orange. Travel Purple reaches only about 4.2:1 with either white or Deep Ink, so its badge uses a deeper shade of the purple, such as `#7C3AED`, with white text.
+- **Alert Orange** marks what needs someone's attention: a payout waiting for sign-off, a refused payment and a failed run.
+- **Light and dark mode** follow the system setting. Light mode is `#F8FAFC` with white panels, and dark mode is `#0B1220` with black panels. Panels are rounded with no outline. Sky Blue and Ocean Cyan are darkened for text on light backgrounds and lightened on dark ones. The dashboard has no one-sided borders, no lines across the top of the page and no gradients.
+
+## The claim states
+
+```
+waiting --start--> in_progress --decline or refer---------------------------------> decided
+                       |-- approve $1,000 or less, then pay ----------------------> decided
+                       |-- approve over $1,000 --> awaiting_signoff --sign-off pays--> decided
+                       '-- the run fails or ends unfinished --> waiting
+```
+
+The data's `open` becomes `waiting` when the database is seeded.
 
 ## The API
 
-Every operation has an `operation_id`, a one-line docstring and no optional inputs.
+Every operation has an `operation_id`, a one-line docstring and no optional inputs, and a test checks every route for all three.
 
-| Operation | Route | Used by |
-|---|---|---|
-| `health` | `GET /api/health` | dashboard |
-| `list_claims` | `GET /api/claims` | dashboard |
-| `get_claim` | `GET /api/claims/{claim_id}` | agent, dashboard |
-| `get_policy` | `GET /api/policies/{policy_id}` | agent, dashboard |
-| `get_plan` | `GET /api/plans/{plan}` | agent |
-| `get_claim_history` | `GET /api/customers/{customer_id}/claims` | agent, dashboard |
-| `get_policy_wording` | `GET /api/policy-wording` | agent |
-| `get_instructions` | `GET /api/instructions` | agent, dashboard |
-| `list_handlers` | `GET /api/handlers` | dashboard |
-| `start_claim` | `POST /api/claims/{claim_id}/start` | agent runner |
-| `add_step` | `POST /api/claims/{claim_id}/steps` | agent runner |
-| `list_steps` | `GET /api/claims/{claim_id}/steps` | dashboard |
-| `record_decision` | `POST /api/claims/{claim_id}/decision` | agent |
-| `pay_claim` | `POST /api/claims/{claim_id}/payment` | agent |
-| `sign_off` | `POST /api/claims/{claim_id}/sign-off` | dashboard |
-| `release_claim` | `POST /api/claims/{claim_id}/release` | agent runner, when a run fails |
-| `run_agent` | `POST /api/claims/{claim_id}/run` | dashboard |
+| Operation | Route | Body | Used by | Phase |
+|---|---|---|---|---|
+| `health` | `GET /api/health` | | end-to-end tests | skeleton |
+| `list_claims` | `GET /api/claims` | | dashboard, `agent queue` | 1 |
+| `get_claim` | `GET /api/claims/{claim_id}` | | agent, dashboard | 1 |
+| `get_policy` | `GET /api/policies/{policy_id}` | | agent, dashboard | 2 |
+| `get_plan` | `GET /api/plans/{plan}` | | agent | 2 |
+| `get_claim_history` | `GET /api/customers/{customer_id}/claims` | | agent, dashboard | 2 |
+| `get_policy_wording` | `GET /api/policy-wording` | | agent | 2 |
+| `get_instructions` | `GET /api/instructions` | | agent, dashboard | 2 |
+| `list_handlers` | `GET /api/handlers` | | dashboard | 2 |
+| `start_claim` | `POST /api/claims/{claim_id}/start` | `thread_id` | runner | 3 |
+| `add_step` | `POST /api/claims/{claim_id}/steps` | `thread_id`, `kind`, `text` | runner | 3 |
+| `list_steps` | `GET /api/claims/{claim_id}/steps` | | dashboard | 3 |
+| `record_decision` | `POST /api/claims/{claim_id}/decision` | `decision`, `payout`, `reason`, `policy_section` | agent | 3 |
+| `pay_claim` | `POST /api/claims/{claim_id}/payment` | `amount` | agent | 3 |
+| `sign_off` | `POST /api/claims/{claim_id}/sign-off` | `handler_id` | dashboard | 3 |
+| `release_claim` | `POST /api/claims/{claim_id}/release` | `thread_id` | runner | 3 |
+| `run_agent` | `POST /api/claims/{claim_id}/run` | | dashboard | 5 |
 
-A decision holds `decision` (`approve`, `decline` or `refer`), `payout`, `reason` (two or three sentences) and `policy_section` (such as "Section 3, Trip Delay"). `pay_claim` takes the amount, and the amount must match the approved payout.
+`decision` is `approve`, `decline` or `refer`. A decline or a referral has a payout of 0. The amount passed to `pay_claim` must match the approved payout.
 
-## Phase 1: Records and the read API
+## Where the code goes
 
-**Builds:** a SQLite database seeded from `data/`, and the read operations above. The database file is `backend/undercover.db`, created on startup when missing and ignored by git; `uv run -m backend.seed` rebuilds it from scratch. Tests run against a fresh database in a temporary folder.
+```
+backend/    main.py (the routes), models.py (request and response shapes), db.py (the database),
+            seed.py (builds it from data/), claims.py (the claim rules), instructions.md
+agent/      main.py (the model, the tools and run), stub.py (the scripted model),
+            __main__.py (the command line)
+dashboard/  src/: api.ts, format.ts, router.ts, styles.css, and a component for each page and panel
+tests/      conftest.py, backend/, agent/, dashboard/
+e2e/        Playwright tests of the whole pilot
+```
 
-**Why first:** everything else, the agent and the dashboard alike, reads these records. Getting the data and its shape right first means later phases build on something fixed.
+## Phase 1: A fresh start, the records and the queue
+
+**Builds:**
+
+- **The skeleton, back in place** as described above. Its three unit tests move to `tests/`, and the checks point there.
+- **A SQLite database seeded from `data/`.** It lives at `backend/undercover.db`, or at the path in `UNDERCOVER_DB`, is created on startup when missing, and is ignored by git. `uv run -m backend.seed` rebuilds it, and each test gets a fresh one in a temporary folder.
+- **`list_claims` and `get_claim`.**
+- **The dashboard's brand:** the fonts, the color and surface tokens for light and dark mode, and a header with the UnderCover name, a tagline and links to the queue and the instructions.
+- **The queue page:** a count for each state, and a row per claim with its id, customer, type, amount claimed, submitted date and a state badge. At phone width the rows become cards.
+- **End-to-end servers of their own.** The end-to-end tests start their own backend on port 8001 with a freshly seeded database, and their own dashboard on port 5174, which `BACKEND_URL` points at that backend. The skeleton's health test becomes a test of the queue.
+
+**Why first:** everything else reads these records, so their shape gets fixed first. The new brand is also the biggest change from the last build, so it's on screen for you to review before the other pages are built on it.
 
 **Success criteria:**
 
+- [x] Before any new code is written, `git diff --stat main -- backend agent dashboard e2e playwright.config.ts` prints nothing
+- [x] `uv run pytest` collects tests only from `tests/`, and vitest runs the tests in `tests/dashboard/`. Coverage is reported on `backend/`, `agent/` and `dashboard/src/` against the unchanged 80% thresholds
 - [x] `uv run -m backend.seed` creates `backend/undercover.db` with 25 claims, all `waiting`
-- [x] `GET /api/claims` returns 25 claims, each with id, claim type, customer name, amount claimed, submitted date and status
-- [x] `GET /api/claims/CLM-1001` returns the story, items, documents and amount claimed ($420.00)
-- [x] `GET /api/policies/POL-2001` returns the Premium plan, the trip and the travelers
-- [x] `GET /api/plans/premium` returns the Premium limits, waiting periods and $50 deductible
-- [x] `GET /api/customers/CUS-3001/claims` returns CLM-0412 and no email, phone, address or date of birth
-- [x] `GET /api/policy-wording` returns the text of `data/policy_wording.md`
-- [x] `GET /api/instructions` returns the text of `backend/instructions.md`
-- [x] An unknown claim, policy, plan or customer returns 404
-- [x] A test confirms the seed never opens `data/evals/` or `data/security/`
+- [x] `GET /api/claims` returns the 25 claims, and CLM-1001 is Maya Patel's trip delay for 420.0, submitted 2026-06-24 and `waiting`
+- [x] `GET /api/claims/CLM-1001` returns the story, the three items, the four documents and the amount claimed, and `GET /api/claims/CLM-9999` returns 404
+- [x] A test confirms the seed opens nothing in `data/evals/` or `data/security/`
 - [x] A test confirms every route has an `operation_id`, a one-line docstring and no optional inputs
-- [x] `npm run check:python` passes with coverage of 80% or more
+- [x] Vitest tests cover the queue page and the formatting of money, dates and claim types, using stubbed fetches
+- [x] With `npm run dev` running, the Playwright MCP server shows the queue with 25 claims and a count of 25 waiting. In light mode the page is `#F8FAFC` with white panels, and in dark mode it is `#0B1220` with black panels
+- [x] In the browser, `document.fonts.check` confirms Montserrat, Lato and Playfair Display have loaded. The computed styles show headings in Montserrat 700, body text in Lato, the tagline in Playfair Display italic, and ids and amounts in Montserrat 600 with tabular figures
+- [x] At 375 pixels wide, the queue has no horizontal scroll
+- [x] `npm run check` passes
 
-## Phase 2: The claim workflow and the payment rule
+## Phase 2: Each claim in full, and the instructions
 
-**Builds:** the operations that change a claim: `start_claim`, `add_step`, `list_steps`, `record_decision`, `pay_claim` and `sign_off`, with the state rules enforced in the backend.
+**Builds:**
 
-**Why next:** the $1,000 rule is the one hard rule in the spec, and it has to hold no matter what the agent does. Building and testing it before the agent exists proves it doesn't rely on the agent behaving.
+- **The read routes for the rest of a claim:** `get_policy`, `get_plan`, `get_claim_history`, `get_policy_wording`, `get_instructions` and `list_handlers`.
+- **`backend/instructions.md`, the agent's instructions.** They tell the agent to:
+  - read the claim, the policy, the plan, the claim history and the policy wording
+  - check that the incident fell within the covered trip, that the claim was filed within 90 days, that any waiting period was met and that no exclusion applies
+  - refer the claim when a document the wording asks for is missing, or when the wording doesn't settle it
+  - work out the payout the way section 10 does: per-item limits, then what a carrier has already paid, then the deductible where it applies, then the benefit's maximum
+  - record the decision with two or three sentences and the section number
+  - pay an approval only when it is $1,000 or less
+- **The claim page at `#/claims/{id}`.** It shows a summary (the id, state, type, customer, submitted date and amount claimed), the customer's story, the items, the documents, the policy (its plan, add-ons, purchase date, trip, travelers and trip cost) and the claim history. Each queue row links to its claim page, and an unknown claim gets a plain not-found message.
+- **The instructions page at `#/instructions`**, read only.
 
-**Success criteria:**
-
-- [x] `start_claim` moves a `waiting` claim to `in_progress` and records its thread id; on a claim that is not `waiting` it returns 409
-- [x] `add_step` stores a step with a time, a kind (`tool_call`, `tool_result`, `message` or `error`) and text; `list_steps` returns them in order
-- [x] `record_decision` with `decline` or `refer` and payout 0 moves the claim to `decided`
-- [x] `record_decision` rejects a decline or refer with a payout, an approve with no payout, and a reason longer than three sentences, with 422
-- [x] An approve of $1,000 or less leaves the claim `in_progress` until `pay_claim` with that amount, which records the payment and moves it to `decided`
-- [x] An approve over $1,000 moves the claim to `awaiting_signoff`
-- [x] `pay_claim` over $1,000 with no sign-off returns 403 and records no payment
-- [x] `pay_claim` with an amount that doesn't match the approved payout returns 409
-- [x] `sign_off` with a handler id records the handler, makes the payment and moves the claim to `decided`; with an unknown handler it returns 404; on a claim not awaiting sign-off it returns 409
-- [x] `GET /api/claims/{id}` includes the decision, the payment and the sign-off when there are any
-- [x] `npm run check:python` passes
-
-## Phase 3: The UnderCover Agent
-
-**Builds:** the agent in `agent/`, on `create_agent` with OpenRouter and the model in `MODEL_NAME` or `openai/gpt-6-luna` at low reasoning effort. `run(claim_id, thread_id)` loads the instructions from `get_instructions`, calls `start_claim`, and streams the agent, posting each tool call and result as a step. Its tools are thin wrappers on the API: `get_claim`, `get_policy`, `get_plan`, `get_claim_history`, `get_policy_wording`, `record_decision` and `pay_claim`. It has no tool for sign-off. `backend/instructions.md` tells it how to work a claim: read everything, decide from the policy wording, work out the payout with the plan's limits and deductible, explain in two or three sentences with the section, and pay only when the payout is $1,000 or less. `uv run -m agent CLM-1001` runs it on one claim from the command line.
-
-**Why here:** with the backend's rules in place, the agent is the only new moving part, and the stub-model tests can drive it against the real API.
+**Why here:** this is everything a handler reads before deciding, and everything the agent will read through its tools. Building the pages first lets you check that the agent will see what a handler sees, before the agent exists.
 
 **Success criteria:**
 
-- [x] With a stub model, a test runs a claim through `get_claim`, `get_policy`, `get_policy_wording`, `record_decision` and `pay_claim`, and the claim ends `decided` with the steps recorded
-- [x] With a stub model that approves $1,500 and then calls `pay_claim`, the payment is refused, the refusal is a recorded step and the claim ends `awaiting_signoff`
-- [x] A test confirms the agent's tools are exactly the seven above, with no sign-off tool
-- [x] A test confirms the system prompt is the text from `get_instructions`
-- [x] The model choice tests still pass for the default and for `MODEL_NAME`
-- [x] `uv run -m agent CLM-1001` with the real model ends with CLM-1001 decided, a reason of two or three sentences and a policy section (one real call, a few cents)
-- [x] `npm run check:python` passes
+- [ ] `GET /api/policies/POL-2001` returns the Premium plan with no add-ons, bought 2026-04-22, for the trip to Rome, Italy, from 2026-06-10 to 2026-06-18 costing 3100.0, with the traveler Maya Patel
+- [ ] `GET /api/plans/premium` returns the Premium limits and waiting periods, the 50.0 deductible and the benefits it applies to (baggage and emergency medical)
+- [ ] `GET /api/customers/CUS-3001/claims` returns CLM-0412, an approved baggage delay paid at 140.0, and nothing in the response holds an email, phone number, address or date of birth
+- [ ] `GET /api/policy-wording` returns the text of `data/policy_wording.md`, and `GET /api/instructions` returns the text of `backend/instructions.md`
+- [ ] `GET /api/handlers` returns Dana Whitfield, Marcus Oyelaran and Priya Raman
+- [ ] An unknown policy, plan or customer returns 404
+- [ ] Vitest tests cover the claim page, the not-found message, the instructions page and the routes
+- [ ] In the Playwright MCP server, clicking CLM-1001 in the queue opens `#/claims/CLM-1001`. The page shows the story, the items at $245.00, $95.00 and $80.00, the total of $420.00, the four documents, the Premium policy for Rome, Italy, from Jun 10 to Jun 18, 2026, and CLM-0412 in the claim history
+- [ ] The Playwright MCP server shows `#/claims/CLM-9999` as not found, and shows `#/instructions` with the instructions and no text field, editable area or save button
+- [ ] At 375 pixels wide, the claim page has no horizontal scroll in either light or dark mode
+- [ ] An end-to-end test opens a claim from the queue, then the instructions page
+- [ ] `npm run check` passes
 
-## Phase 4: Running the agent from the backend
+## Phase 3: The claim workflow and the $1,000 rule
 
-**Builds:** `run_agent`, which starts the agent on a waiting claim as a background task with a new thread id and returns at once, so the dashboard can start a claim and watch it. `uv run -m agent queue` works every waiting claim in turn from the command line.
+**Builds:**
 
-**Why here:** the dashboard needs a way to start the agent, and the queue command is how the team works the whole queue straight through.
+- **The routes that change a claim:** `start_claim`, `add_step`, `list_steps`, `record_decision`, `pay_claim`, `sign_off` and `release_claim`, with the state rules in `backend/claims.py`.
+- **More on each claim.** `get_claim` adds the thread id, the decision (with the cited section's title and text), the payment and the sign-off. `list_claims` adds the decision and the payout.
+- **The decision on the claim page.** The page shows the decision (the outcome, the payout, the reasons and the section of the wording it cites), the payment, the sign-off, an Alert Orange note when a payout is waiting for sign-off, and the agent's steps grouped by run. The queue shows each claim's decision.
 
-**Success criteria:**
-
-- [x] With a stub model, `POST /api/claims/CLM-1001/run` returns 202 with the thread id, and the claim moves to `in_progress` and then `decided`
-- [x] `run_agent` on a claim that isn't `waiting` returns 409
-- [x] If the agent fails partway, the failure is recorded as a step and the claim goes back to `waiting` with any unpaid decision dropped, so it can be run again
-- [x] With a stub model, `uv run -m agent queue` decides every waiting claim in the seeded queue and leaves a claim already in progress alone
-- [x] `npm run check:python` passes
-
-## Phase 5: The dashboard
-
-**Builds:** three pages in `dashboard/`, in the brand's fonts, colors and light and dark surfaces.
-
-- **Queue:** every claim with its id, customer, type, amount claimed, submitted date and a colored state badge (waiting Cerulean, in progress Marigold, awaiting sign-off Coral, decided Sea Green), with counts for each state.
-- **Claim:** the story, items, documents, policy and claim history, the agent's decision with payout, reasons and policy section, the payment, and a Run agent button on a waiting claim.
-- **Instructions:** the agent's instructions, read only.
-
-**Why here:** with the backend and the agent working, the dashboard shows real data from the start.
+**Why here:** the $1,000 rule is the one hard rule in the spec, and it has to hold whatever the agent does. Building and testing it before the agent exists proves the rule doesn't depend on the agent behaving. You can also drive a claim through every state by hand and see each state in the dashboard.
 
 **Success criteria:**
 
-- [x] Vitest tests cover the queue, the claim page and the instructions page against stubbed fetches
-- [x] With `npm run dev` running, the Playwright MCP server shows the queue with 25 claims and their state counts, in both light and dark mode
-- [x] The Playwright MCP server shows CLM-1001 with its story, items, documents, policy and history, and money as $420.00
-- [x] The Playwright MCP server shows the instructions page with no way to edit them
-- [x] The page has no horizontal scroll at phone width
-- [x] `npm run check:ts` passes with coverage of 80% or more
+- [ ] `start_claim` moves a `waiting` claim to `in_progress` and records the thread id, and returns 409 for a claim in any other state
+- [ ] `add_step` stores the time, the thread id, the kind (`tool_call`, `tool_result`, `message` or `error`) and the text, and `list_steps` returns the steps in order. Any other kind returns 422
+- [ ] `record_decision` returns 409 for a claim that isn't `in_progress`
+- [ ] A decline or a referral with a payout of 0 moves the claim to `decided`. A decline or referral with a payout returns 422, and so does an approval with no payout
+- [ ] A reason of one sentence, or of four, returns 422 with a message saying it must be two or three sentences. A `policy_section` of 13 also returns 422
+- [ ] An approval of $420 leaves the claim `in_progress`. `pay_claim` with 420.0 records the payment and moves the claim to `decided`, and `pay_claim` with 400.0 returns 409
+- [ ] An approval of exactly $1,000 can be paid without a sign-off, and an approval of $1,150 moves the claim to `awaiting_signoff`
+- [ ] `pay_claim` on that $1,150 approval returns 403, records no payment and leaves the claim `awaiting_signoff`
+- [ ] A test with the limit set to $500 shows a $600 approval waiting for sign-off, which confirms the limit comes from `data/company.json` and not from the code
+- [ ] `sign_off` with HND-01 records Dana Whitfield and the time, pays the $1,150 and moves the claim to `decided`. It returns 404 for an unknown handler, 403 for a handler without `can_approve_over_limit` and 409 for a claim that isn't awaiting sign-off
+- [ ] `release_claim` with the claim's own thread id moves an `in_progress` claim back to `waiting`, drops the unpaid decision and keeps the steps. It returns 409 for a different thread id or for a claim that isn't in progress
+- [ ] `GET /api/claims/{id}` includes the payment, the sign-off and the decision with its section (3, "Trip Delay" and the section's text)
+- [ ] Vitest tests cover the decision for each outcome, the payment, the sign-off, the sign-off note and the steps
+- [ ] With `npm run dev` running, use curl with made-up decisions to take CLM-1001 to paid, CLM-1002 to awaiting sign-off, CLM-1003 to declined and CLM-1004 to in progress. The Playwright MCP server then shows the queue with all four states, their counts and their badges. In both light and dark mode, each badge's text has at least 4.5:1 contrast with its fill
+- [ ] The Playwright MCP server shows CLM-1001 approved at $420.00, with its reasons, Section 3 (Trip Delay) with its text, and the payment. It shows CLM-1002 with the Alert Orange note that $1,150.00 is waiting for a handler's sign-off
+- [ ] `uv run -m backend.seed` then puts every claim back to `waiting`
+- [ ] `npm run check` passes
 
-## Phase 6: Live steps, sign-off and end-to-end tests
+## Phase 4: The UnderCover Agent
 
-**Builds:** the claim page polls the claim and its steps while the agent works and shows each step as it happens. A claim awaiting sign-off shows the payout, a handler picker and a Sign off button. The Playwright tests run the full flow with a stub model, chosen by `MODEL_NAME=stub` in the test server only, so they never call a model. They start their own backend, database and dashboard on other ports, so they never touch the dev servers. `docs/STATUS.md` describes what's built and how to run it.
+**Builds:**
 
-**Why last:** this joins the agent, the backend and the dashboard, and the end-to-end tests check the whole pilot together.
+- **`agent/main.py`:** `model()`, seven tools and `run(claim_id, thread_id)`.
+  - The tools are thin wrappers on the API, named after its operations: `get_claim`, `get_policy`, `get_plan`, `get_claim_history`, `get_policy_wording`, `record_decision` and `pay_claim`.
+  - `run()` loads the instructions from `get_instructions` as the system prompt and calls `start_claim`. It then streams the agent and posts each step. When the stream ends, it checks how the claim ended and releases the claim if the run didn't finish.
+- **`agent/stub.py`:** the scripted model behind `MODEL_NAME=stub`. It reads the claim, approves it in full citing section 10, and tries to pay.
+- **The command line.** `uv run -m agent CLM-1001` runs the agent on one claim and prints the decision.
+- **`.env` loading** that no longer overrides the environment.
+
+**Why here:** with the backend's rules in place, the agent is the only new moving part. The stub-model tests drive it against the real API, running in the same process.
 
 **Success criteria:**
 
-- [x] A Playwright test runs the agent on a claim from the dashboard and sees the steps appear and the claim reach decided
-- [x] A Playwright test takes a claim to awaiting sign-off, signs off as a handler and sees it decided with the payment and the handler's name
-- [x] A Playwright test opens the instructions page
-- [x] The Playwright MCP server shows a real run on one claim with its steps appearing live and its decision and reasons at the end
-- [x] `docs/STATUS.md` says what's built and how to run it
-- [x] `npm run check` passes: ruff, pyright, pytest, ESLint, Prettier, tsc, vitest and Playwright
+- [ ] With a stub model, a test runs CLM-1001 through the seven tools in turn. The claim ends `decided` with a payment of 420.0, and its steps are the tool calls, the tool results and a final message, all with the run's thread id
+- [ ] A stub model approves CLM-1002 at $1,150 and then tries to pay. The 403 and the backend's reason come back to the model as the tool's result and are recorded as a step, and the claim ends `awaiting_signoff` with no payment
+- [ ] A model that stops without deciding leaves an error step and the claim `waiting`, and so does a model that raises an error partway through
+- [ ] Running the agent on a claim that isn't `waiting` fails without changing the claim
+- [ ] A test confirms the agent's tools are exactly the seven above, with no tool for sign-off, release or steps
+- [ ] A test confirms the system prompt is the text that `get_instructions` returns
+- [ ] A test confirms no module in `agent/` imports from `backend/`, so the agent reaches everything through the API
+- [ ] `model()` returns `openai/gpt-6-luna` at low reasoning effort by default, the model in `MODEL_NAME` when it's set, and the stub when `MODEL_NAME=stub`. A `MODEL_NAME` already set in the environment takes precedence over one in `.env`
+- [ ] With `npm run dev` running, `uv run -m agent CLM-1001` on the real model prints a decision. `GET /api/claims/CLM-1001` then shows the claim `decided`, with a reason of two or three sentences and a section of the wording (one real run, a few cents)
+- [ ] `npm run check` passes
+
+## Phase 5: Running the agent from the dashboard, live
+
+**Builds:**
+
+- **`run_agent`,** which starts the agent on a waiting claim in the background with a new thread id and returns at once.
+- **`uv run -m agent queue`,** which works every waiting claim in turn and prints a line for each.
+- **A Run the agent button** on a waiting claim's page.
+- **Live steps.** While the claim is in progress, the page polls the claim and its steps every second and shows each step as it arrives:
+  - tool calls in plain words, such as "Read the policy POL-2001"
+  - tool results folded, so a long one like the policy wording doesn't fill the page
+  - refusals and errors in Alert Orange
+- **A live queue** that refreshes every two seconds.
+- **The end-to-end backend** runs with `MODEL_NAME=stub` and with `BACKEND_URL` set to port 8001.
+
+**Why here:** this joins the agent to the dashboard, which is how the team sees what the agent does step by step. The queue command is how the whole queue gets worked straight through.
+
+**Success criteria:**
+
+- [ ] With a stub model, `POST /api/claims/CLM-1001/run` returns 202 with a thread id, and the claim reaches `decided` with its steps under that thread id
+- [ ] `run_agent` returns 409 for a claim that isn't `waiting`
+- [ ] With a stub model, the queue command decides every waiting claim: claims of $1,000 or less end paid, and claims over $1,000 end awaiting sign-off. It leaves a claim that is already in progress alone
+- [ ] Vitest tests cover the button, each kind of step, and the polling stopping when the claim leaves `in_progress`
+- [ ] With `npm run dev` running, the Playwright MCP server clicks Run the agent on CLM-1001. It sees the claim go to in progress, its steps appear one by one, and its decision and reasons at the end, and the queue's counts change without a reload (one real run, a few cents)
+- [ ] An end-to-end test runs CLM-1001 from the dashboard and sees its steps, then sees the claim decided and paid at $420.00
+- [ ] `npm run check` passes
+
+## Phase 6: Sign-off in the dashboard, and the whole pilot end to end
+
+**Builds:**
+
+- **Sign-off on the claim page.** A claim awaiting sign-off gets a handler picker and a button that names the amount, such as "Sign off and pay $1,150.00". Once the claim is signed off, the page shows who signed off, when, and the payment.
+- **End-to-end tests of the whole pilot** on the stub model: the queue, a run that is paid, a run that waits for sign-off and is then signed off, and the instructions.
+- **`docs/STATUS.md`,** saying what's built and how to run it.
+
+**Why last:** the sign-off closes the loop on the $1,000 rule, and the end-to-end tests check the backend, the agent and the dashboard working together.
+
+**Success criteria:**
+
+- [ ] Vitest tests cover the sign-off: the three handlers in the picker, the button disabled until a handler is chosen, the handler id posted, and a refusal shown as a message
+- [ ] An end-to-end test runs CLM-1002 and sees the refused payment as a step and the claim awaiting sign-off. It then signs off as Dana Whitfield and sees the claim decided, with $1,150.00 paid and her name
+- [ ] The end-to-end tests leave the dev database alone: `GET /api/claims` on port 8000 returns the same before and after `npm run e2e`
+- [ ] With `MODEL_NAME=stub npm run dev` running, the Playwright MCP server runs CLM-1002 and signs off as Priya Raman. It sees the claim decided with her name, the time and the payment, in light and dark mode and at 375 pixels wide. `uv run -m backend.seed` resets the database afterwards
+- [ ] `docs/STATUS.md` says what's built and how to run it
+- [ ] `npm run check` passes: ruff, pyright, pytest with 80% coverage, ESLint, Prettier, tsc, vitest with 80% coverage, and Playwright
+
+## What the build costs
+
+Only two runs use a real model: the command-line run in Phase 4 and the dashboard run in Phase 5. Each costs a few cents on `openai/gpt-6-luna`, or nothing if your `.env` sets `MODEL_NAME` to a free model such as `openrouter/free`. Every test uses the stub.
 
 ## Not in this plan
 
-- Scoring the agent against `data/evals/`. The spec keeps the handlers' decisions for checking the agent's work, and the labs and later builds do that; nothing in the pilot reads them.
+- Scoring the agent against `data/evals/`. The spec keeps the handlers' decisions for checking the agent's work later, and nothing in the pilot reads them.
 - The claims manual, sign-in, real payments and messages to customers, as the spec says.
+- A handler changing the agent's decision, or editing the instructions, which stay read only.

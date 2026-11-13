@@ -5,7 +5,7 @@ pre-commit:
   parallel: true
   jobs:
     - name: python
-      glob: "{backend,agent}/**/*.py"
+      glob: "{backend,agent,tests}/**/*.py"
       group:
         piped: true
         jobs:
@@ -14,7 +14,7 @@ pre-commit:
           - run: npm run check:python
 
     - name: typescript
-      glob: ["{dashboard,e2e}/**", "*.config.*"]
+      glob: ["dashboard/**", "e2e/**", "tests/dashboard/**", "*.config.*"]
       group:
         piped: true
         jobs:
