@@ -195,16 +195,16 @@ e2e/        Playwright tests of the whole pilot
 
 **Success criteria:**
 
-- [ ] With a stub model, a test runs CLM-1001 through the seven tools in turn. The claim ends `decided` with a payment of 420.0, and its steps are the tool calls, the tool results and a final message, all with the run's thread id
-- [ ] A stub model approves CLM-1002 at $1,150 and then tries to pay. The 403 and the backend's reason come back to the model as the tool's result and are recorded as a step, and the claim ends `awaiting_signoff` with no payment
-- [ ] A model that stops without deciding leaves an error step and the claim `waiting`, and so does a model that raises an error partway through
-- [ ] Running the agent on a claim that isn't `waiting` fails without changing the claim
-- [ ] A test confirms the agent's tools are exactly the seven above, with no tool for sign-off, release or steps
-- [ ] A test confirms the system prompt is the text that `get_instructions` returns
-- [ ] A test confirms no module in `agent/` imports from `backend/`, so the agent reaches everything through the API
-- [ ] `model()` returns `openai/gpt-6-luna` at low reasoning effort by default, the model in `MODEL_NAME` when it's set, and the stub when `MODEL_NAME=stub`. A `MODEL_NAME` already set in the environment takes precedence over one in `.env`
-- [ ] With `npm run dev` running, `uv run -m agent CLM-1001` on the real model prints a decision. `GET /api/claims/CLM-1001` then shows the claim `decided`, with a reason of two or three sentences and a section of the wording (one real run, a few cents)
-- [ ] `npm run check` passes
+- [x] With a stub model, a test runs CLM-1001 through the seven tools in turn. The claim ends `decided` with a payment of 420.0, and its steps are the tool calls, the tool results and a final message, all with the run's thread id
+- [x] A stub model approves CLM-1002 at $1,150 and then tries to pay. The 403 and the backend's reason come back to the model as the tool's result and are recorded as a step, and the claim ends `awaiting_signoff` with no payment
+- [x] A model that stops without deciding leaves an error step and the claim `waiting`, and so does a model that raises an error partway through
+- [x] Running the agent on a claim that isn't `waiting` fails without changing the claim
+- [x] A test confirms the agent's tools are exactly the seven above, with no tool for sign-off, release or steps
+- [x] A test confirms the system prompt is the text that `get_instructions` returns
+- [x] A test confirms no module in `agent/` imports from `backend/`, so the agent reaches everything through the API
+- [x] `model()` returns `openai/gpt-6-luna` at low reasoning effort by default, the model in `MODEL_NAME` when it's set, and the stub when `MODEL_NAME=stub`. A `MODEL_NAME` already set in the environment takes precedence over one in `.env`
+- [x] With `npm run dev` running, `uv run -m agent CLM-1001` on the real model prints a decision. `GET /api/claims/CLM-1001` then shows the claim `decided`, with a reason of two or three sentences and a section of the wording (one real run, a few cents)
+- [x] `npm run check` passes
 
 ## Phase 5: Running the agent from the dashboard, live
 
