@@ -42,3 +42,19 @@ test("a claim opens from the queue, and the instructions are read only", async (
     0,
   );
 });
+
+test("the agent runs on a claim from the dashboard and pays it", async ({
+  page,
+}) => {
+  await page.goto("/#/claims/CLM-1001");
+  await page.getByRole("button", { name: "Run the agent" }).click();
+  const steps = page.getByRole("region", { name: "The agent's steps" });
+  await expect(steps.getByText("Read the claim CLM-1001")).toBeVisible();
+  await expect(steps.getByText("Pay $420.00")).toBeVisible();
+  await expect(page.locator(".claim-title .badge")).toHaveText("Decided");
+  const decision = page.getByRole("region", { name: "The agent's decision" });
+  await expect(decision).toContainText("Approved");
+  await expect(
+    decision.getByText("Paid").locator("xpath=following-sibling::dd[1]"),
+  ).toContainText("$420.00");
+});

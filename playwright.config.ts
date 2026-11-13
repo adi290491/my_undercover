@@ -13,7 +13,11 @@ export default defineConfig({
       command:
         "uv run -m backend.seed && uv run -m uvicorn backend.main:app --port 8001",
       url: `${backendUrl}/api/health`,
-      env: { UNDERCOVER_DB: "e2e/e2e.db" },
+      env: {
+        UNDERCOVER_DB: "e2e/e2e.db",
+        MODEL_NAME: "stub",
+        BACKEND_URL: backendUrl,
+      },
       reuseExistingServer: false,
     },
     {

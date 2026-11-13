@@ -97,12 +97,13 @@ def test_the_stub_works_a_small_claim_through_every_tool(client):
 
 def test_a_payment_over_the_limit_is_refused_and_recorded(client):
     result = main.run("CLM-1002", "thread-1", StubModel())
-    assert "now awaiting signoff" in result
+    assert "now awaiting sign-off" in result
     worked = claim(client, "CLM-1002")
     assert worked["status"] == "awaiting_signoff"
     assert worked["payment"] is None
-    refusals = [s for s in steps(client, "CLM-1002") if s["kind"] == "error"]
+    refusals = [s for s in steps(client, "CLM-1002") if s["text"].startswith("Refused")]
     assert len(refusals) == 1
+    assert refusals[0]["kind"] == "tool_result"
     assert refusals[0]["text"].startswith(
         "Refused (403): The payout of $1,150.00 is over the $1,000.00 limit"
     )
@@ -233,6 +234,13 @@ def test_the_environment_wins_over_dotenv(tmp_path, monkeypatch):
     importlib.reload(main)
     assert main.os.environ["MODEL_NAME"] == "from-environment"
     assert main.os.environ["UNDERCOVER_ONLY_IN_DOTENV"] == "yes"
+
+
+def test_a_silent_final_reply_still_ends_the_run(client):
+    main.run("CLM-1001", "thread-1", scripted(AIMessage("")))
+    recorded = steps(client)
+    assert [s["kind"] for s in recorded] == ["message", "error"]
+    assert recorded[0]["text"] == "The agent finished without a closing note."
 
 
 def test_describe_falls_back_to_the_raw_call():

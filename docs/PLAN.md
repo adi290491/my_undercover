@@ -17,7 +17,7 @@ This branch already holds an earlier build of the pilot (commits `0d5831d` to `1
 - **The backend is the only door, and it enforces the rules.** The agent never reads `data/` or the database. It reaches claims, policies, claim history, the policy wording and its own instructions only through the API, as the tech stack asks. Every rule then lives in one place and holds whatever the model does.
 - **The backend enforces the $1,000 rule; the prompt doesn't.** The limit comes from `payout_approval_limit` in `data/company.json`. An approval over the limit moves the claim to `awaiting_signoff`, and `pay_claim` refuses it with 403 until a handler signs off. The sign-off makes the payment itself, so nobody has a second step to forget. Only a handler with `can_approve_over_limit` can sign off; all three can today. The agent has no sign-off tool.
 - **A refused call goes back to the model; it doesn't crash the run.** When the backend refuses a tool call with 403, 409 or 422, the tool returns the status and the backend's reason as its result. The model can then read "the payment waits for a handler's sign-off" and stop, or shorten a reason that was too long and try again.
-- **The runner records the steps, not the model.** `run()` streams the agent and posts each tool call, each tool result and the final message to the backend as a step, tagged with the run's thread id. The model can't skip or invent a step, and the dashboard polls the steps to show the run live.
+- **The runner records the steps, not the model.** `run()` streams the agent and posts each tool call, each tool result and the final message to the backend as a step, tagged with the run's thread id. The model can't skip or invent a step, and the dashboard polls the steps to show the run live. Every run ends with the agent's final message or an error step, so the dashboard keeps following a run until it has really finished, even after the payment has already moved the claim to `decided`. A refused call is recorded as the tool's result, and the dashboard marks it in Alert Orange.
 - **A run never leaves a claim half done.** A run can fail, or end with the claim still in progress, for example when the model approves but never pays. Either way, the runner records an error step and releases the claim back to `waiting`, dropping any unpaid decision. A release names its thread id, so a run can only release its own claim.
 - **Each decision cites a section of the policy wording by number.** `record_decision` takes `policy_section` as a number, such as 3, and the backend rejects a number that isn't a section of `data/policy_wording.md`. The claim page shows that section's title and text under the reasons, so a handler can check the decision against the clause it rests on. The backend also requires the reason to be two or three sentences, as the spec asks.
 - **The agent sees only what it needs, and never the answer key.** The seed reads only the queue's records, never `data/evals/` or `data/security/`, so no route can serve them. Claim history has its own route, which leaves out the customer's email, phone, address and date of birth.
@@ -224,13 +224,13 @@ e2e/        Playwright tests of the whole pilot
 
 **Success criteria:**
 
-- [ ] With a stub model, `POST /api/claims/CLM-1001/run` returns 202 with a thread id, and the claim reaches `decided` with its steps under that thread id
-- [ ] `run_agent` returns 409 for a claim that isn't `waiting`
-- [ ] With a stub model, the queue command decides every waiting claim: claims of $1,000 or less end paid, and claims over $1,000 end awaiting sign-off. It leaves a claim that is already in progress alone
-- [ ] Vitest tests cover the button, each kind of step, and the polling stopping when the claim leaves `in_progress`
-- [ ] With `npm run dev` running, the Playwright MCP server clicks Run the agent on CLM-1001. It sees the claim go to in progress, its steps appear one by one, and its decision and reasons at the end, and the queue's counts change without a reload (one real run, a few cents)
-- [ ] An end-to-end test runs CLM-1001 from the dashboard and sees its steps, then sees the claim decided and paid at $420.00
-- [ ] `npm run check` passes
+- [x] With a stub model, `POST /api/claims/CLM-1001/run` returns 202 with a thread id, and the claim reaches `decided` with its steps under that thread id
+- [x] `run_agent` returns 409 for a claim that isn't `waiting`
+- [x] With a stub model, the queue command decides every waiting claim: claims of $1,000 or less end paid, and claims over $1,000 end awaiting sign-off. It leaves a claim that is already in progress alone
+- [x] Vitest tests cover the button, each kind of step, and the polling stopping when the claim leaves `in_progress`
+- [x] With `npm run dev` running, the Playwright MCP server clicks Run the agent on CLM-1001. It sees the claim go to in progress, its steps appear one by one, and its decision and reasons at the end, and the queue's counts change without a reload (one real run, a few cents)
+- [x] An end-to-end test runs CLM-1001 from the dashboard and sees its steps, then sees the claim decided and paid at $420.00
+- [x] `npm run check` passes
 
 ## Phase 6: Sign-off in the dashboard, and the whole pilot end to end
 

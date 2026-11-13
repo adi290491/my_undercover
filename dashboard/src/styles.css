@@ -528,7 +528,8 @@ code {
 }
 
 .alert-label,
-.step.error .step-kind {
+.step.error .step-kind,
+.step.refused .step-kind {
   display: inline-block;
   margin-right: 8px;
   padding: 0 10px;
@@ -581,7 +582,8 @@ code {
   background: var(--sunken);
 }
 
-.step.error {
+.step.error,
+.step.refused {
   background: var(--alert-soft);
 }
 
@@ -597,7 +599,8 @@ code {
   color: var(--muted);
 }
 
-.step.error .step-kind {
+.step.error .step-kind,
+.step.refused .step-kind {
   justify-self: start;
   margin-right: 0;
 }
@@ -632,4 +635,43 @@ code {
   .step-text {
     grid-column: 1 / -1;
   }
+}
+
+button.primary {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+  background: var(--sky);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+button.primary:hover {
+  background: #0a56b3;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.run-agent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-left: auto;
+}
+
+.run-agent .alert {
+  margin: 0;
+}
+
+.working {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--info);
+  color: var(--deep-ink);
 }

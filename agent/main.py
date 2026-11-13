@@ -2,7 +2,9 @@
 
 import json
 import os
+import uuid
 from collections import defaultdict
+from collections.abc import Iterator
 from typing import Any, Literal
 
 import httpx
@@ -127,6 +129,13 @@ def model() -> BaseChatModel:
     )
 
 
+STATUS_WORDS = {
+    "waiting": "waiting",
+    "in_progress": "in progress",
+    "awaiting_signoff": "awaiting sign-off",
+    "decided": "decided",
+}
+
 STEP_WORDS = {
     "get_claim": "Read the claim {claim_id}",
     "get_policy": "Read the policy {policy_id}",
@@ -159,13 +168,16 @@ def add_step(claim_id: str, thread_id: str, kind: str, text: str) -> None:
 
 
 def record(claim_id: str, thread_id: str, message: BaseMessage) -> None:
-    """Post one message from the agent's run as steps the dashboard shows."""
+    """Post one message from the agent's run as steps the dashboard shows.
+
+    Every run ends with a message step (the agent's final reply) or an error step
+    (from run() when the run fails), so the dashboard knows when a run is over."""
     if isinstance(message, ToolMessage):
-        kind = "error" if message.status == "error" else "tool_result"
-        add_step(claim_id, thread_id, kind, message.text)
+        add_step(claim_id, thread_id, "tool_result", message.text)
     elif isinstance(message, AIMessage):
-        if message.text:
-            add_step(claim_id, thread_id, "message", message.text)
+        if message.text or not message.tool_calls:
+            text = message.text or "The agent finished without a closing note."
+            add_step(claim_id, thread_id, "message", text)
         for tool_call in message.tool_calls:
             text = describe(tool_call["name"], tool_call["args"])
             add_step(claim_id, thread_id, "tool_call", text)
@@ -193,7 +205,7 @@ def outcome(claim: dict[str, Any], problem: str | None) -> str:
     section = decision["policy_section"]
     lines = [
         f"{claim_id}: {decision['decision']}, {money(decision['payout'])}, "
-        f"now {claim['status'].replace('_', ' ')}",
+        f"now {STATUS_WORDS[claim['status']]}",
         f"Section {section['number']}, {section['title']}: {decision['reason']}",
     ]
     return "\n".join(lines + ([problem] if problem else []))
@@ -224,3 +236,14 @@ def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:
     elif problem:
         add_step(claim_id, thread_id, "error", problem)
     return outcome(claim, problem)
+
+
+def work_queue(llm: BaseChatModel | None = None) -> Iterator[str]:
+    """Work every waiting claim in turn, saying how each one ended."""
+    for claim in call("GET", "/api/claims"):
+        if claim["status"] != "waiting":
+            continue
+        try:
+            yield run(claim["claim_id"], str(uuid.uuid4()), llm)
+        except Refused as refusal:  # another run took the claim since the list
+            yield f"{claim['claim_id']}: skipped. {refusal}"

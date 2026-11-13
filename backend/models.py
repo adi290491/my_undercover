@@ -175,3 +175,8 @@ class SignOffRequest(BaseModel):
 
 class ReleaseRequest(BaseModel):
     thread_id: str = Field(description="The id of the run releasing the claim.")
+
+
+class RunStarted(BaseModel):
+    claim_id: str
+    thread_id: str

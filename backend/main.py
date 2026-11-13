@@ -1,13 +1,15 @@
 """The UnderCover backend."""
 
 import sqlite3
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 
+from agent.main import run
 from backend import claims, db
 from backend.models import (
     Claim,
@@ -20,6 +22,7 @@ from backend.models import (
     Plan,
     Policy,
     ReleaseRequest,
+    RunStarted,
     SignOffRequest,
     StartRequest,
     Step,
@@ -177,3 +180,13 @@ def release_claim(claim_id: str, request: ReleaseRequest) -> ClaimState:
     with db.connect() as conn:
         claims.release(conn, claim_id, request.thread_id)
         return state(conn, claim_id)
+
+
+@app.post("/api/claims/{claim_id}/run", operation_id="run_agent", status_code=202)
+def run_agent(claim_id: str, background: BackgroundTasks) -> RunStarted:
+    """Start the agent on a waiting claim in the background, under a new thread id."""
+    with db.connect() as conn:
+        claims.refuse_unless(claims.find(conn, claim_id), "waiting", "run")
+    thread_id = str(uuid.uuid4())
+    background.add_task(run, claim_id, thread_id)
+    return RunStarted(claim_id=claim_id, thread_id=thread_id)

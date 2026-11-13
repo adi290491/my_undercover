@@ -5,7 +5,7 @@ import { StatusBadge } from "./StatusBadge";
 import { useApi } from "./useApi";
 
 export function Queue() {
-  const { data: claims, error } = useApi<ClaimSummary[]>("/api/claims", 0);
+  const { data: claims, error } = useApi<ClaimSummary[]>("/api/claims", 2000);
 
   if (!claims) {
     return (
