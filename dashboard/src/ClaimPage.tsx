@@ -5,6 +5,7 @@ import { date, label, money } from "./format";
 import { HistoryPanel, PolicyPanel } from "./PolicyPanel";
 import { links } from "./router";
 import { RunButton } from "./RunButton";
+import { SignOff } from "./SignOff";
 import { StatusBadge } from "./StatusBadge";
 import { Steps } from "./Steps";
 import { useApi } from "./useApi";
@@ -69,10 +70,14 @@ export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
           {claim.decision && (
             <DecisionPanel claim={claim} decision={claim.decision} />
           )}
-          <Steps
-            claimId={claim.claim_id}
-            claimInProgress={claim.status === "in_progress"}
-          />
+          {claim.status === "awaiting_signoff" && claim.decision && (
+            <SignOff
+              claimId={claim.claim_id}
+              payout={claim.decision.payout}
+              onSigned={reload}
+            />
+          )}
+          <Steps claimId={claim.claim_id} claimStatus={claim.status} />
           <ClaimRecords claim={claim} />
         </div>
         <aside className="stack">

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { Step } from "./api";
+import type { Status, Step } from "./api";
 import { clock } from "./format";
 import { runEnded, runs } from "./runs";
 import { useApi } from "./useApi";
@@ -39,14 +39,17 @@ function StepRow({ step }: Readonly<{ step: Step }>) {
   );
 }
 
+// The steps reload whenever the claim's status changes, and are followed every
+// second while the claim is in progress or its latest run hasn't ended.
 export function Steps({
   claimId,
-  claimInProgress,
-}: Readonly<{ claimId: string; claimInProgress: boolean }>) {
+  claimStatus,
+}: Readonly<{ claimId: string; claimStatus: Status }>) {
+  const claimInProgress = claimStatus === "in_progress";
   const refresh = useCallback(
     (steps: Step[] | undefined) =>
-      claimInProgress || !runEnded(steps) ? 1000 : 0,
-    [claimInProgress],
+      claimStatus === "in_progress" || !runEnded(steps) ? 1000 : 0,
+    [claimStatus],
   );
   const { data: steps, error } = useApi<Step[]>(
     `/api/claims/${claimId}/steps`,

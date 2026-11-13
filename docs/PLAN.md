@@ -244,12 +244,12 @@ e2e/        Playwright tests of the whole pilot
 
 **Success criteria:**
 
-- [ ] Vitest tests cover the sign-off: the three handlers in the picker, the button disabled until a handler is chosen, the handler id posted, and a refusal shown as a message
-- [ ] An end-to-end test runs CLM-1002 and sees the refused payment as a step and the claim awaiting sign-off. It then signs off as Dana Whitfield and sees the claim decided, with $1,150.00 paid and her name
-- [ ] The end-to-end tests leave the dev database alone: `GET /api/claims` on port 8000 returns the same before and after `npm run e2e`
-- [ ] With `MODEL_NAME=stub npm run dev` running, the Playwright MCP server runs CLM-1002 and signs off as Priya Raman. It sees the claim decided with her name, the time and the payment, in light and dark mode and at 375 pixels wide. `uv run -m backend.seed` resets the database afterwards
-- [ ] `docs/STATUS.md` says what's built and how to run it
-- [ ] `npm run check` passes: ruff, pyright, pytest with 80% coverage, ESLint, Prettier, tsc, vitest with 80% coverage, and Playwright
+- [x] Vitest tests cover the sign-off: the three handlers in the picker, the button disabled until a handler is chosen, the handler id posted, and a refusal shown as a message
+- [x] An end-to-end test runs CLM-1002 and sees the refused payment as a step and the claim awaiting sign-off. It then signs off as Dana Whitfield and sees the claim decided, with $1,150.00 paid and her name
+- [x] The end-to-end tests leave the dev database alone: `GET /api/claims` on port 8000 returns the same before and after `npm run e2e`
+- [x] With `MODEL_NAME=stub npm run dev` running, the Playwright MCP server runs CLM-1002 and signs off as Priya Raman. It sees the claim decided with her name, the time and the payment, in light and dark mode and at 375 pixels wide. `uv run -m backend.seed` resets the database afterwards
+- [x] `docs/STATUS.md` says what's built and how to run it
+- [x] `npm run check` passes: ruff, pyright, pytest with 80% coverage, ESLint, Prettier, tsc, vitest with 80% coverage, and Playwright
 
 ## What the build costs
 

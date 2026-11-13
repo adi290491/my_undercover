@@ -122,6 +122,39 @@ it("keeps following the steps until the run's final message", async () => {
   expect(gets(calls, "/api/claims/CLM-1001/steps")).toBe(stepGets);
 });
 
+it("loads the steps of a run that finished between two refreshes", async () => {
+  let finished = false;
+  stubApi({
+    ...claimRoutes(),
+    "/api/claims/CLM-1001": () =>
+      finished
+        ? claim({
+            status: "awaiting_signoff",
+            thread_id: "thread-1",
+            decision: decision({ payout: 1150 }),
+          })
+        : claim(),
+    "/api/claims/CLM-1001/steps": () =>
+      finished
+        ? [
+            step(1, "tool_call", "Pay $1,150.00"),
+            step(2, "tool_result", "Refused (403): Wait for a sign-off."),
+            step(3, "message", "Approved; the payment waits for sign-off."),
+          ]
+        : [],
+  });
+  render(<ClaimPage claimId="CLM-1001" />);
+  expect(
+    await screen.findByText("The agent hasn't worked on this claim yet."),
+  ).toBeDefined();
+  finished = true;
+  await wait(2000);
+  expect(
+    await screen.findByText("Approved; the payment waits for sign-off."),
+  ).toBeDefined();
+  expect(screen.getByText("Refused", { selector: ".step-kind" })).toBeDefined();
+});
+
 it("picks up a run started elsewhere on a waiting claim", async () => {
   let started = false;
   stubApi({

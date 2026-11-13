@@ -58,3 +58,40 @@ test("the agent runs on a claim from the dashboard and pays it", async ({
     decision.getByText("Paid").locator("xpath=following-sibling::dd[1]"),
   ).toContainText("$420.00");
 });
+
+test("a payout over $1,000 waits for a handler, who signs it off", async ({
+  page,
+}) => {
+  await page.goto("/#/claims/CLM-1002");
+  await page.getByRole("button", { name: "Run the agent" }).click();
+  const badge = page.locator(".claim-title .badge");
+  await expect(badge).toHaveText("Awaiting sign-off");
+  const refused = page.locator(".step.refused");
+  await expect(refused).toContainText("Refused (403): The payout of $1,150.00");
+  await expect(page.getByText("Needs sign-off")).toBeVisible();
+
+  const signOff = page.getByRole("region", { name: "Sign off the payout" });
+  const button = signOff.getByRole("button", {
+    name: "Sign off and pay $1,150.00",
+  });
+  await expect(button).toBeDisabled();
+  await signOff
+    .getByLabel("Handler")
+    .selectOption({ label: "Dana Whitfield, Senior Claims Handler" });
+  await button.click();
+
+  await expect(badge).toHaveText("Decided");
+  await expect(signOff).toHaveCount(0);
+  const decision = page.getByRole("region", { name: "The agent's decision" });
+  const value = (label: string) =>
+    decision
+      .getByText(label, { exact: true })
+      .locator("xpath=following-sibling::dd[1]");
+  await expect(value("Paid")).toContainText("$1,150.00");
+  await expect(value("Signed off")).toContainText("Dana Whitfield");
+
+  await page.getByRole("link", { name: "Back to the queue" }).click();
+  await expect(
+    page.getByRole("row", { name: /CLM-1002/ }).locator(".badge"),
+  ).toHaveText("Decided");
+});

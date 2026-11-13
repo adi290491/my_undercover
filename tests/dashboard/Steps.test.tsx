@@ -26,7 +26,7 @@ it("shows each run's steps in order", async () => {
       step(6, "message", "Approved, waiting for sign-off.", "thread-2"),
     ],
   });
-  render(<Steps claimId="CLM-1001" claimInProgress={false} />);
+  render(<Steps claimId="CLM-1001" claimStatus="decided" />);
   const first = await run("Run 1");
   expect(first.getAllByRole("listitem")).toHaveLength(2);
   const second = await run("Run 2");
@@ -46,7 +46,7 @@ it("shows each run's steps in order", async () => {
 
 it("says when the agent hasn't worked the claim", async () => {
   stubApi({ "/api/claims/CLM-1001/steps": [] });
-  render(<Steps claimId="CLM-1001" claimInProgress={false} />);
+  render(<Steps claimId="CLM-1001" claimStatus="decided" />);
   expect(
     await screen.findByText("The agent hasn't worked on this claim yet."),
   ).toBeDefined();
@@ -56,7 +56,7 @@ it("says when the steps can't be loaded", async () => {
   stubApi({
     "/api/claims/CLM-1001/steps": new Refusal(500, "Something broke."),
   });
-  render(<Steps claimId="CLM-1001" claimInProgress={false} />);
+  render(<Steps claimId="CLM-1001" claimStatus="decided" />);
   expect(await screen.findByText("Something broke.")).toBeDefined();
 });
 
