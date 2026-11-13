@@ -2,9 +2,11 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 Status = Literal["waiting", "in_progress", "awaiting_signoff", "decided"]
+Outcome = Literal["approve", "decline", "refer"]
+StepKind = Literal["tool_call", "tool_result", "message", "error"]
 
 
 class Item(BaseModel):
@@ -26,10 +28,45 @@ class ClaimSummary(BaseModel):
     amount_claimed: float
     submitted_on: str
     status: Status
+    decision: Outcome | None
+    payout: float | None
 
 
-class Claim(BaseModel):
+class Section(BaseModel):
+    number: int
+    title: str
+    text: str
+
+
+class Decision(BaseModel):
+    decision: Outcome
+    payout: float
+    reason: str
+    policy_section: Section
+    decided_at: str
+
+
+class Payment(BaseModel):
+    amount: float
+    paid_at: str
+
+
+class SignOff(BaseModel):
+    handler_id: str
+    handler_name: str
+    signed_at: str
+
+
+class ClaimState(BaseModel):
     claim_id: str
+    status: Status
+    thread_id: str | None
+    decision: Decision | None
+    payment: Payment | None
+    sign_off: SignOff | None
+
+
+class Claim(ClaimState):
     policy_id: str
     customer_id: str
     customer_name: str
@@ -42,7 +79,6 @@ class Claim(BaseModel):
     items: list[Item]
     amount_claimed: float
     documents: list[Document]
-    status: Status
 
 
 class Trip(BaseModel):
@@ -99,3 +135,43 @@ class Handler(BaseModel):
 
 class Text(BaseModel):
     text: str
+
+
+class Step(BaseModel):
+    step_id: int
+    claim_id: str
+    thread_id: str
+    kind: StepKind
+    text: str
+    created_at: str
+
+
+class StartRequest(BaseModel):
+    thread_id: str = Field(description="The id of the run that works the claim.")
+
+
+class StepRequest(BaseModel):
+    thread_id: str = Field(description="The id of the run the step belongs to.")
+    kind: StepKind
+    text: str
+
+
+class DecisionRequest(BaseModel):
+    decision: Outcome
+    payout: float = Field(description="The payout in US dollars, or 0.")
+    reason: str = Field(description="Two or three sentences explaining the decision.")
+    policy_section: int = Field(
+        description="The number of the policy wording section it rests on."
+    )
+
+
+class PaymentRequest(BaseModel):
+    amount: float = Field(description="The approved payout in US dollars.")
+
+
+class SignOffRequest(BaseModel):
+    handler_id: str = Field(description="The handler signing off, such as HND-01.")
+
+
+class ReleaseRequest(BaseModel):
+    thread_id: str = Field(description="The id of the run releasing the claim.")

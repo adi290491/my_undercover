@@ -504,3 +504,132 @@ code {
     gap: 12px;
   }
 }
+
+.outcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  font-family: var(--heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.reason {
+  margin: 0 0 16px;
+}
+
+.alert {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--alert-soft);
+}
+
+.alert-label,
+.step.error .step-kind {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--deep-ink);
+  font-family: var(--heading);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.section-quote {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--sunken);
+}
+
+.section-quote h3 {
+  margin: 0 0 4px;
+}
+
+.section-quote p,
+.section-quote ul,
+.section-quote ol {
+  margin: 8px 0 0;
+}
+
+.run + .run {
+  margin-top: 16px;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: max-content 80px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--sunken);
+}
+
+.step.error {
+  background: var(--alert-soft);
+}
+
+.step-time {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.step-kind {
+  font-family: var(--heading);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.step.error .step-kind {
+  justify-self: start;
+  margin-right: 0;
+}
+
+.step-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.step-text summary {
+  cursor: pointer;
+  color: var(--link);
+  font-family: var(--heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.step-text pre {
+  max-height: 320px;
+  margin: 8px 0 0;
+  overflow: auto;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  .step {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .step-text {
+    grid-column: 1 / -1;
+  }
+}

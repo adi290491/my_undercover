@@ -3,8 +3,10 @@ import { afterEach, vi } from "vitest";
 import type {
   Claim,
   ClaimSummary,
+  Decision,
   PastClaim,
   Policy,
+  Step,
 } from "../../dashboard/src/api";
 
 afterEach(() => {
@@ -73,13 +75,24 @@ export function summary(
     amount_claimed: 420,
     submitted_on: "2026-06-24",
     status: "waiting",
+    decision: null,
+    payout: null,
     ...overrides,
   };
 }
 
 export function claim(overrides: Partial<Claim> = {}): Claim {
   return {
-    ...summary("CLM-1001"),
+    claim_id: "CLM-1001",
+    claim_type: "trip_delay",
+    customer_name: "Maya Patel",
+    amount_claimed: 420,
+    submitted_on: "2026-06-24",
+    status: "waiting",
+    thread_id: null,
+    decision: null,
+    payment: null,
+    sign_off: null,
     policy_id: "POL-2001",
     customer_id: "CUS-3001",
     incident_date: "2026-06-18",
@@ -151,5 +164,38 @@ export function claimRoutes(
     "/api/claims/CLM-1001": claim(overrides),
     "/api/policies/POL-2001": policy,
     "/api/customers/CUS-3001/claims": history,
+    "/api/claims/CLM-1001/steps": [],
+  };
+}
+
+export function decision(overrides: Partial<Decision> = {}): Decision {
+  return {
+    decision: "approve",
+    payout: 420,
+    reason:
+      "The flight was canceled for a crew problem. The hotel, meals and taxis are covered.",
+    policy_section: {
+      number: 3,
+      title: "Trip Delay",
+      text: "We pay when your carrier delays you for at least your plan's waiting period.",
+    },
+    decided_at: "2026-11-13T15:04:05+00:00",
+    ...overrides,
+  };
+}
+
+export function step(
+  stepId: number,
+  kind: Step["kind"],
+  text: string,
+  threadId = "thread-1",
+): Step {
+  return {
+    step_id: stepId,
+    claim_id: "CLM-1001",
+    thread_id: threadId,
+    kind,
+    text,
+    created_at: "2026-11-13T15:04:05+00:00",
   };
 }

@@ -7,13 +7,56 @@ export const STATUSES: Status[] = [
   "decided",
 ];
 
-export interface ClaimSummary {
+export type Outcome = "approve" | "decline" | "refer";
+
+export type StepKind = "tool_call" | "tool_result" | "message" | "error";
+
+interface ClaimBase {
   claim_id: string;
   claim_type: string;
   customer_name: string;
   amount_claimed: number;
   submitted_on: string;
   status: Status;
+}
+
+export interface ClaimSummary extends ClaimBase {
+  decision: Outcome | null;
+  payout: number | null;
+}
+
+export interface Section {
+  number: number;
+  title: string;
+  text: string;
+}
+
+export interface Decision {
+  decision: Outcome;
+  payout: number;
+  reason: string;
+  policy_section: Section;
+  decided_at: string;
+}
+
+export interface Payment {
+  amount: number;
+  paid_at: string;
+}
+
+export interface SignOff {
+  handler_id: string;
+  handler_name: string;
+  signed_at: string;
+}
+
+export interface Step {
+  step_id: number;
+  claim_id: string;
+  thread_id: string;
+  kind: StepKind;
+  text: string;
+  created_at: string;
 }
 
 export interface Item {
@@ -28,7 +71,11 @@ export interface ClaimDocument {
   content: string;
 }
 
-export interface Claim extends ClaimSummary {
+export interface Claim extends ClaimBase {
+  thread_id: string | null;
+  decision: Decision | null;
+  payment: Payment | null;
+  sign_off: SignOff | null;
   policy_id: string;
   customer_id: string;
   incident_date: string;

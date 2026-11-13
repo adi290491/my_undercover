@@ -162,23 +162,23 @@ e2e/        Playwright tests of the whole pilot
 
 **Success criteria:**
 
-- [ ] `start_claim` moves a `waiting` claim to `in_progress` and records the thread id, and returns 409 for a claim in any other state
-- [ ] `add_step` stores the time, the thread id, the kind (`tool_call`, `tool_result`, `message` or `error`) and the text, and `list_steps` returns the steps in order. Any other kind returns 422
-- [ ] `record_decision` returns 409 for a claim that isn't `in_progress`
-- [ ] A decline or a referral with a payout of 0 moves the claim to `decided`. A decline or referral with a payout returns 422, and so does an approval with no payout
-- [ ] A reason of one sentence, or of four, returns 422 with a message saying it must be two or three sentences. A `policy_section` of 13 also returns 422
-- [ ] An approval of $420 leaves the claim `in_progress`. `pay_claim` with 420.0 records the payment and moves the claim to `decided`, and `pay_claim` with 400.0 returns 409
-- [ ] An approval of exactly $1,000 can be paid without a sign-off, and an approval of $1,150 moves the claim to `awaiting_signoff`
-- [ ] `pay_claim` on that $1,150 approval returns 403, records no payment and leaves the claim `awaiting_signoff`
-- [ ] A test with the limit set to $500 shows a $600 approval waiting for sign-off, which confirms the limit comes from `data/company.json` and not from the code
-- [ ] `sign_off` with HND-01 records Dana Whitfield and the time, pays the $1,150 and moves the claim to `decided`. It returns 404 for an unknown handler, 403 for a handler without `can_approve_over_limit` and 409 for a claim that isn't awaiting sign-off
-- [ ] `release_claim` with the claim's own thread id moves an `in_progress` claim back to `waiting`, drops the unpaid decision and keeps the steps. It returns 409 for a different thread id or for a claim that isn't in progress
-- [ ] `GET /api/claims/{id}` includes the payment, the sign-off and the decision with its section (3, "Trip Delay" and the section's text)
-- [ ] Vitest tests cover the decision for each outcome, the payment, the sign-off, the sign-off note and the steps
-- [ ] With `npm run dev` running, use curl with made-up decisions to take CLM-1001 to paid, CLM-1002 to awaiting sign-off, CLM-1003 to declined and CLM-1004 to in progress. The Playwright MCP server then shows the queue with all four states, their counts and their badges. In both light and dark mode, each badge's text has at least 4.5:1 contrast with its fill
-- [ ] The Playwright MCP server shows CLM-1001 approved at $420.00, with its reasons, Section 3 (Trip Delay) with its text, and the payment. It shows CLM-1002 with the Alert Orange note that $1,150.00 is waiting for a handler's sign-off
-- [ ] `uv run -m backend.seed` then puts every claim back to `waiting`
-- [ ] `npm run check` passes
+- [x] `start_claim` moves a `waiting` claim to `in_progress` and records the thread id, and returns 409 for a claim in any other state
+- [x] `add_step` stores the time, the thread id, the kind (`tool_call`, `tool_result`, `message` or `error`) and the text, and `list_steps` returns the steps in order. Any other kind returns 422
+- [x] `record_decision` returns 409 for a claim that isn't `in_progress`
+- [x] A decline or a referral with a payout of 0 moves the claim to `decided`. A decline or referral with a payout returns 422, and so does an approval with no payout
+- [x] A reason of one sentence, or of four, returns 422 with a message saying it must be two or three sentences. A `policy_section` of 13 also returns 422
+- [x] An approval of $420 leaves the claim `in_progress`. `pay_claim` with 420.0 records the payment and moves the claim to `decided`, and `pay_claim` with 400.0 returns 409
+- [x] An approval of exactly $1,000 can be paid without a sign-off, and an approval of $1,150 moves the claim to `awaiting_signoff`
+- [x] `pay_claim` on that $1,150 approval returns 403, records no payment and leaves the claim `awaiting_signoff`
+- [x] A test with the limit set to $500 shows a $600 approval waiting for sign-off, which confirms the limit comes from `data/company.json` and not from the code
+- [x] `sign_off` with HND-01 records Dana Whitfield and the time, pays the $1,150 and moves the claim to `decided`. It returns 404 for an unknown handler, 403 for a handler without `can_approve_over_limit` and 409 for a claim that isn't awaiting sign-off
+- [x] `release_claim` with the claim's own thread id moves an `in_progress` claim back to `waiting`, drops the unpaid decision and keeps the steps. It returns 409 for a different thread id or for a claim that isn't in progress
+- [x] `GET /api/claims/{id}` includes the payment, the sign-off and the decision with its section (3, "Trip Delay" and the section's text)
+- [x] Vitest tests cover the decision for each outcome, the payment, the sign-off, the sign-off note and the steps
+- [x] With `npm run dev` running, use curl with made-up decisions to take CLM-1001 to paid, CLM-1002 to awaiting sign-off, CLM-1003 to declined and CLM-1004 to in progress. The Playwright MCP server then shows the queue with all four states, their counts and their badges. In both light and dark mode, each badge's text has at least 4.5:1 contrast with its fill
+- [x] The Playwright MCP server shows CLM-1001 approved at $420.00, with its reasons, Section 3 (Trip Delay) with its text, and the payment. It shows CLM-1002 with the Alert Orange note that $1,150.00 is waiting for a handler's sign-off
+- [x] `uv run -m backend.seed` then puts every claim back to `waiting`
+- [x] `npm run check` passes
 
 ## Phase 4: The UnderCover Agent
 

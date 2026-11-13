@@ -1,4 +1,4 @@
-import type { Status } from "./api";
+import type { Outcome, Status } from "./api";
 
 const dollars = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -21,6 +21,12 @@ const monthDay = new Intl.DateTimeFormat("en-US", {
 const moment = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+const clockTime = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",
   second: "2-digit",
@@ -44,6 +50,10 @@ export function dateRange(isoStart: string, isoEnd: string): string {
 
 export function time(isoTime: string): string {
   return moment.format(new Date(isoTime));
+}
+
+export function clock(isoTime: string): string {
+  return clockTime.format(new Date(isoTime));
 }
 
 export function label(code: string): string {
@@ -70,4 +80,20 @@ const STATUS_LABELS: Record<Status, string> = {
 
 export function statusLabel(status: Status): string {
   return STATUS_LABELS[status];
+}
+
+const OUTCOMES: Record<Outcome, string> = {
+  approve: "Approved",
+  decline: "Declined",
+  refer: "Referred",
+};
+
+export function outcomeLabel(outcome: Outcome): string {
+  return OUTCOMES[outcome];
+}
+
+export function outcomeWithPayout(outcome: Outcome, payout: number): string {
+  return outcome === "approve"
+    ? `${OUTCOMES[outcome]}, ${money(payout)}`
+    : OUTCOMES[outcome];
 }

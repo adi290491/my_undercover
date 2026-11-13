@@ -1,5 +1,5 @@
 import { STATUSES, type ClaimSummary } from "./api";
-import { date, label, money } from "./format";
+import { date, label, money, outcomeWithPayout } from "./format";
 import { links } from "./router";
 import { StatusBadge } from "./StatusBadge";
 import { useApi } from "./useApi";
@@ -40,6 +40,7 @@ export function Queue() {
               </th>
               <th scope="col">Submitted</th>
               <th scope="col">Status</th>
+              <th scope="col">Decision</th>
             </tr>
           </thead>
           <tbody>
@@ -58,6 +59,13 @@ export function Queue() {
                 <td data-label="Submitted">{date(claim.submitted_on)}</td>
                 <td data-label="Status">
                   <StatusBadge status={claim.status} />
+                </td>
+                <td data-label="Decision">
+                  {claim.decision ? (
+                    outcomeWithPayout(claim.decision, claim.payout ?? 0)
+                  ) : (
+                    <span className="notice">Not yet</span>
+                  )}
                 </td>
               </tr>
             ))}

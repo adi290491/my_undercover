@@ -1,9 +1,11 @@
 import type { Claim } from "./api";
 import { ClaimRecords } from "./ClaimRecords";
+import { DecisionPanel } from "./DecisionPanel";
 import { date, label, money } from "./format";
 import { HistoryPanel, PolicyPanel } from "./PolicyPanel";
 import { links } from "./router";
 import { StatusBadge } from "./StatusBadge";
+import { Steps } from "./Steps";
 import { useApi } from "./useApi";
 
 export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
@@ -48,6 +50,10 @@ export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
       </dl>
       <div className="claim-layout">
         <div className="stack">
+          {claim.decision && (
+            <DecisionPanel claim={claim} decision={claim.decision} />
+          )}
+          <Steps claimId={claim.claim_id} refreshMs={0} />
           <ClaimRecords claim={claim} />
         </div>
         <aside className="stack">

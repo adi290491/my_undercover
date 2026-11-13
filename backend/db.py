@@ -24,6 +24,33 @@ CREATE TABLE claims (
     status TEXT NOT NULL,
     thread_id TEXT
 );
+CREATE TABLE decisions (
+    claim_id TEXT PRIMARY KEY,
+    decision TEXT NOT NULL,
+    payout REAL NOT NULL,
+    reason TEXT NOT NULL,
+    policy_section INTEGER NOT NULL,
+    decided_at TEXT NOT NULL
+);
+CREATE TABLE payments (
+    claim_id TEXT PRIMARY KEY,
+    amount REAL NOT NULL,
+    paid_at TEXT NOT NULL
+);
+CREATE TABLE sign_offs (
+    claim_id TEXT PRIMARY KEY,
+    handler_id TEXT NOT NULL,
+    handler_name TEXT NOT NULL,
+    signed_at TEXT NOT NULL
+);
+CREATE TABLE steps (
+    step_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    claim_id TEXT NOT NULL,
+    thread_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 """
 
 

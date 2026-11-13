@@ -12,8 +12,8 @@ const claims = [
     status: "awaiting_signoff",
   }),
   summary("CLM-1003", { status: "in_progress" }),
-  summary("CLM-1004", { status: "decided" }),
-  summary("CLM-1005", { status: "decided" }),
+  summary("CLM-1004", { status: "decided", decision: "decline", payout: 0 }),
+  summary("CLM-1005", { status: "decided", decision: "approve", payout: 186 }),
 ];
 
 it("lists every claim with its details", async () => {
@@ -68,4 +68,16 @@ it("says when a request fails without a reason", async () => {
       "The queue couldn't be loaded: The request failed with status 422.",
     ),
   ).toBeDefined();
+});
+
+it("shows each claim's decision", async () => {
+  stubApi({ "/api/claims": claims });
+  render(<Queue />);
+  const decisionOf = async (claimId: string) =>
+    (await screen.findByRole("link", { name: claimId }))
+      .closest("tr")
+      ?.querySelector('[data-label="Decision"]')?.textContent;
+  expect(await decisionOf("CLM-1001")).toBe("Not yet");
+  expect(await decisionOf("CLM-1004")).toBe("Declined");
+  expect(await decisionOf("CLM-1005")).toBe("Approved, $186.00");
 });

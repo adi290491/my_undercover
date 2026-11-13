@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { Instructions } from "../../dashboard/src/Instructions";
-import { blocks, spans } from "../../dashboard/src/markdown";
+import { blocks, spans } from "../../dashboard/src/prose";
 import { Refusal, stubApi } from "./testing";
 
 const text = `# How the agent works
