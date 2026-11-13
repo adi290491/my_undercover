@@ -3,6 +3,7 @@ import importlib
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
@@ -49,6 +50,22 @@ class Broken(StubModel):
         if self.calls >= self.fail_on:
             raise RuntimeError("The model is down.")
         return super()._generate(messages, stop, run_manager, **kwargs)
+
+
+WRITES = ("record_decision", "pay_claim")
+
+
+class Twice(StubModel):
+    """The stub model, asking for each write twice in one turn, as real models can."""
+
+    def next_step(self, messages: list[BaseMessage]) -> AIMessage:
+        step = super().next_step(messages)
+        if step.tool_calls and step.tool_calls[0]["name"] in WRITES:
+            first = step.tool_calls[0]
+            return AIMessage(
+                content="", tool_calls=[first, first | {"id": f"{first['id']}-again"}]
+            )
+        return step
 
 
 class Recorder(StubModel):
@@ -172,6 +189,39 @@ def test_a_claim_that_isnt_waiting_is_left_alone(client):
         main.run("CLM-1001", "thread-1", StubModel())
     assert claim(client)["thread_id"] == "other-run"
     assert steps(client) == []
+
+
+def test_the_same_write_twice_at_once_is_refused_once(client):
+    result = main.run("CLM-1001", "thread-1", Twice())
+    assert result.startswith("CLM-1001: approve, $420.00, now decided")
+    assert claim(client)["payment"]["amount"] == 420.0
+    recorded = steps(client)
+    refusals = sorted(s["text"] for s in recorded if s["text"].startswith("Refused"))
+    assert refusals == [
+        "Refused (409): CLM-1001 already has a decision.",
+        "Refused (409): CLM-1001 has already been paid.",
+    ]
+    assert [s for s in recorded if s["kind"] == "error"] == []
+
+
+def test_an_error_that_isnt_json_comes_back_as_text(monkeypatch):
+    failing = httpx.MockTransport(
+        lambda _: httpx.Response(500, text="Internal Server Error")
+    )
+    monkeypatch.setattr(
+        main, "backend", lambda: httpx.Client(base_url="http://test", transport=failing)
+    )
+    with pytest.raises(main.Refused, match=r"^Refused \(500\): Internal Server Error$"):
+        main.call("GET", "/api/claims/CLM-1001")
+
+
+def test_a_run_without_a_model_puts_the_claim_back(client, monkeypatch):
+    monkeypatch.delenv("MODEL_NAME", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    result = main.run("CLM-1001", "thread-1")
+    assert "The run failed: 'OPENROUTER_API_KEY'" in result
+    assert claim(client)["status"] == "waiting"
+    assert steps(client)[-1]["kind"] == "error"
 
 
 def test_the_agent_has_exactly_its_seven_tools():

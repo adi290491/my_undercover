@@ -39,7 +39,8 @@ def call(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
     with backend() as client:
         response = client.request(method, path, json=body)
     if response.is_error:
-        detail = response.json().get("detail")
+        is_json = response.headers.get("content-type") == "application/json"
+        detail = response.json().get("detail") if is_json else response.text
         raise Refused(f"Refused ({response.status_code}): {detail}")
     return response.json()
 
@@ -213,12 +214,11 @@ def outcome(claim: dict[str, Any], problem: str | None) -> str:
 
 def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:
     """Work one claim with the agent, and return how it ended."""
-    llm = llm or model()
-    instructions = call("GET", "/api/instructions")["text"]
     call("POST", f"/api/claims/{claim_id}/start", {"thread_id": thread_id})
     problem = None
     try:
-        work(claim_id, thread_id, instructions, llm)
+        instructions = call("GET", "/api/instructions")["text"]
+        work(claim_id, thread_id, instructions, llm or model())
     except Exception as error:  # a failed run must never leave the claim half done
         problem = f"The run failed: {error}"
     claim = call("GET", f"/api/claims/{claim_id}")

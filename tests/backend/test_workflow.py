@@ -46,6 +46,7 @@ def test_start_claim(client):
     claim = start(client)
     assert claim["status"] == "in_progress"
     assert claim["thread_id"] == "thread-1"
+    assert start(client) == claim
     again = client.post("/api/claims/CLM-1001/start", json={"thread_id": "thread-2"})
     assert again.status_code == 409
     assert again.json()["detail"] == (

@@ -127,7 +127,7 @@ def state(conn: sqlite3.Connection, claim_id: str) -> ClaimState:
 @app.post("/api/claims/{claim_id}/start", operation_id="start_claim")
 def start_claim(claim_id: str, request: StartRequest) -> ClaimState:
     """Start work on a waiting claim, under the thread id of the run working it."""
-    with db.connect() as conn:
+    with db.connect(write=True) as conn:
         claims.start(conn, claim_id, request.thread_id)
         return state(conn, claim_id)
 
@@ -135,7 +135,7 @@ def start_claim(claim_id: str, request: StartRequest) -> ClaimState:
 @app.post("/api/claims/{claim_id}/steps", operation_id="add_step")
 def add_step(claim_id: str, request: StepRequest) -> Step:
     """Record one step of a run on a claim."""
-    with db.connect() as conn:
+    with db.connect(write=True) as conn:
         return Step.model_validate(
             claims.add_step(
                 conn, claim_id, request.thread_id, request.kind, request.text
@@ -153,7 +153,7 @@ def list_steps(claim_id: str) -> list[Step]:
 @app.post("/api/claims/{claim_id}/decision", operation_id="record_decision")
 def record_decision(claim_id: str, request: DecisionRequest) -> ClaimState:
     """Record the decision on a claim in progress: approve, decline or refer."""
-    with db.connect() as conn:
+    with db.connect(write=True) as conn:
         claims.decide(conn, claim_id, request)
         return state(conn, claim_id)
 
@@ -161,7 +161,7 @@ def record_decision(claim_id: str, request: DecisionRequest) -> ClaimState:
 @app.post("/api/claims/{claim_id}/payment", operation_id="pay_claim")
 def pay_claim(claim_id: str, request: PaymentRequest) -> ClaimState:
     """Pay an approved claim its payout; one over the limit waits for a sign-off."""
-    with db.connect() as conn:
+    with db.connect(write=True) as conn:
         claims.pay(conn, claim_id, request.amount)
         return state(conn, claim_id)
 
@@ -169,7 +169,7 @@ def pay_claim(claim_id: str, request: PaymentRequest) -> ClaimState:
 @app.post("/api/claims/{claim_id}/sign-off", operation_id="sign_off")
 def sign_off(claim_id: str, request: SignOffRequest) -> ClaimState:
     """Sign off an approval over the limit as a handler, which pays it."""
-    with db.connect() as conn:
+    with db.connect(write=True) as conn:
         claims.sign_off(conn, claim_id, request.handler_id)
         return state(conn, claim_id)
 
@@ -177,7 +177,7 @@ def sign_off(claim_id: str, request: SignOffRequest) -> ClaimState:
 @app.post("/api/claims/{claim_id}/release", operation_id="release_claim")
 def release_claim(claim_id: str, request: ReleaseRequest) -> ClaimState:
     """Put a claim in progress back in the queue after its run failed."""
-    with db.connect() as conn:
+    with db.connect(write=True) as conn:
         claims.release(conn, claim_id, request.thread_id)
         return state(conn, claim_id)
 
@@ -185,8 +185,8 @@ def release_claim(claim_id: str, request: ReleaseRequest) -> ClaimState:
 @app.post("/api/claims/{claim_id}/run", operation_id="run_agent", status_code=202)
 def run_agent(claim_id: str, background: BackgroundTasks) -> RunStarted:
     """Start the agent on a waiting claim in the background, under a new thread id."""
-    with db.connect() as conn:
-        claims.refuse_unless(claims.find(conn, claim_id), "waiting", "run")
     thread_id = str(uuid.uuid4())
+    with db.connect(write=True) as conn:
+        claims.start(conn, claim_id, thread_id)
     background.add_task(run, claim_id, thread_id)
     return RunStarted(claim_id=claim_id, thread_id=thread_id)

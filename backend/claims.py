@@ -123,8 +123,14 @@ def refuse_unless(claim: dict[str, Any], status: str, action: str) -> None:
 
 
 def start(conn: sqlite3.Connection, claim_id: str, thread_id: str) -> None:
-    """Move a waiting claim to in progress, under a run's thread id."""
-    refuse_unless(find(conn, claim_id), "waiting", "started")
+    """Move a waiting claim to in progress, under a run's thread id.
+
+    Starting it again under the same thread id changes nothing, so a run that
+    run_agent has already started can start its claim as usual."""
+    claim = find(conn, claim_id)
+    if claim["status"] == "in_progress" and claim["thread_id"] == thread_id:
+        return
+    refuse_unless(claim, "waiting", "started")
     conn.execute(
         "UPDATE claims SET status = 'in_progress', thread_id = ? WHERE claim_id = ?",
         (thread_id, claim_id),

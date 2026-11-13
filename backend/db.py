@@ -60,12 +60,18 @@ def db_path() -> Path:
 
 
 @contextmanager
-def connect() -> Iterator[sqlite3.Connection]:
-    """Open the database for one unit of work, committed when it ends."""
+def connect(*, write: bool = False) -> Iterator[sqlite3.Connection]:
+    """Open the database for one unit of work, committed when it ends.
+
+    A write takes the write lock before it reads anything, so two requests can't
+    both pass the same check, such as "this claim is waiting", and then both write.
+    """
     conn = sqlite3.connect(db_path(), timeout=30)
     conn.row_factory = sqlite3.Row
     try:
         with conn:
+            if write:
+                conn.execute("BEGIN IMMEDIATE")
             yield conn
     finally:
         conn.close()

@@ -32,7 +32,8 @@ def test_run_agent_only_on_a_waiting_claim(client):
     response = client.post("/api/claims/CLM-1001/run")
     assert response.status_code == 409
     assert response.json()["detail"] == (
-        "CLM-1001 is in progress, so it can't be run. Only a claim that is waiting can."
+        "CLM-1001 is in progress, so it can't be started. "
+        "Only a claim that is waiting can."
     )
     assert client.post("/api/claims/CLM-9999/run").status_code == 404
 
