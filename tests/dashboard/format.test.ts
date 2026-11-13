@@ -1,5 +1,11 @@
 import { expect, it } from "vitest";
-import { date, label, money, statusLabel } from "../../dashboard/src/format";
+import {
+  date,
+  dateRange,
+  label,
+  money,
+  statusLabel,
+} from "../../dashboard/src/format";
 import { parse } from "../../dashboard/src/router";
 
 it("writes money in US dollars", () => {
@@ -31,4 +37,11 @@ it("reads the page from the address", () => {
   expect(parse("#/instructions")).toEqual({ page: "instructions" });
   expect(parse("#/claims/")).toEqual({ page: "missing" });
   expect(parse("#/somewhere")).toEqual({ page: "missing" });
+});
+
+it("writes date ranges", () => {
+  expect(dateRange("2026-06-10", "2026-06-18")).toBe("Jun 10 to Jun 18, 2026");
+  expect(dateRange("2026-12-28", "2027-01-04")).toBe(
+    "Dec 28, 2026 to Jan 4, 2027",
+  );
 });

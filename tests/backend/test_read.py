@@ -88,3 +88,74 @@ def test_unknown_claim(client):
     response = client.get("/api/claims/CLM-9999")
     assert response.status_code == 404
     assert response.json()["detail"] == "There is no claim CLM-9999."
+
+
+def test_get_policy(client):
+    policy = client.get("/api/policies/POL-2001").json()
+    assert policy["plan"] == "premium"
+    assert policy["add_ons"] == []
+    assert policy["purchased_on"] == "2026-04-22"
+    assert policy["trip"] == {
+        "destination": "Rome, Italy",
+        "departs_on": "2026-06-10",
+        "returns_on": "2026-06-18",
+        "trip_cost": 3100.0,
+    }
+    assert policy["travelers"] == ["Maya Patel"]
+
+
+def test_get_plan(client):
+    plan = client.get("/api/plans/premium").json()
+    assert plan["name"] == "UnderCover Premium"
+    assert plan["deductible"] == 50.0
+    assert plan["trip_delay_waiting_hours"] == 6
+    assert plan["per_item_limit"] == 300.0
+    assert plan["deductible_applies_to"] == ["baggage", "emergency_medical"]
+
+
+def test_get_claim_history_leaves_out_contact_details(client):
+    response = client.get("/api/customers/CUS-3001/claims")
+    assert response.json() == [
+        {
+            "claim_id": "CLM-0412",
+            "filed_on": "2024-08-19",
+            "incident_date": "2024-08-09",
+            "claim_type": "baggage_delay",
+            "summary": "Checked bag arrived 30 hours late in Lisbon",
+            "outcome": "approved",
+            "amount_paid": 140.0,
+        }
+    ]
+    for private in ["maya.patel@example.com", "555", "1988-03-14", "Wayne Street"]:
+        assert private not in response.text
+
+
+def test_get_policy_wording(client):
+    wording = (db.DATA / "policy_wording.md").read_text(encoding="utf-8")
+    assert client.get("/api/policy-wording").json() == {"text": wording}
+
+
+def test_get_instructions(client):
+    instructions = (db.ROOT / "backend" / "instructions.md").read_text(encoding="utf-8")
+    assert client.get("/api/instructions").json() == {"text": instructions}
+
+
+def test_list_handlers(client):
+    handlers = client.get("/api/handlers").json()
+    assert [h["name"] for h in handlers] == [
+        "Dana Whitfield",
+        "Marcus Oyelaran",
+        "Priya Raman",
+    ]
+    assert all(h["can_approve_over_limit"] for h in handlers)
+
+
+def test_unknown_records(client):
+    for path, message in [
+        ("/api/policies/POL-9999", "There is no policy POL-9999."),
+        ("/api/plans/platinum", "There is no plan platinum."),
+        ("/api/customers/CUS-9999/claims", "There is no customer CUS-9999."),
+    ]:
+        response = client.get(path)
+        assert response.status_code == 404
+        assert response.json()["detail"] == message

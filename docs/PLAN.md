@@ -137,18 +137,18 @@ e2e/        Playwright tests of the whole pilot
 
 **Success criteria:**
 
-- [ ] `GET /api/policies/POL-2001` returns the Premium plan with no add-ons, bought 2026-04-22, for the trip to Rome, Italy, from 2026-06-10 to 2026-06-18 costing 3100.0, with the traveler Maya Patel
-- [ ] `GET /api/plans/premium` returns the Premium limits and waiting periods, the 50.0 deductible and the benefits it applies to (baggage and emergency medical)
-- [ ] `GET /api/customers/CUS-3001/claims` returns CLM-0412, an approved baggage delay paid at 140.0, and nothing in the response holds an email, phone number, address or date of birth
-- [ ] `GET /api/policy-wording` returns the text of `data/policy_wording.md`, and `GET /api/instructions` returns the text of `backend/instructions.md`
-- [ ] `GET /api/handlers` returns Dana Whitfield, Marcus Oyelaran and Priya Raman
-- [ ] An unknown policy, plan or customer returns 404
-- [ ] Vitest tests cover the claim page, the not-found message, the instructions page and the routes
-- [ ] In the Playwright MCP server, clicking CLM-1001 in the queue opens `#/claims/CLM-1001`. The page shows the story, the items at $245.00, $95.00 and $80.00, the total of $420.00, the four documents, the Premium policy for Rome, Italy, from Jun 10 to Jun 18, 2026, and CLM-0412 in the claim history
-- [ ] The Playwright MCP server shows `#/claims/CLM-9999` as not found, and shows `#/instructions` with the instructions and no text field, editable area or save button
-- [ ] At 375 pixels wide, the claim page has no horizontal scroll in either light or dark mode
-- [ ] An end-to-end test opens a claim from the queue, then the instructions page
-- [ ] `npm run check` passes
+- [x] `GET /api/policies/POL-2001` returns the Premium plan with no add-ons, bought 2026-04-22, for the trip to Rome, Italy, from 2026-06-10 to 2026-06-18 costing 3100.0, with the traveler Maya Patel
+- [x] `GET /api/plans/premium` returns the Premium limits and waiting periods, the 50.0 deductible and the benefits it applies to (baggage and emergency medical)
+- [x] `GET /api/customers/CUS-3001/claims` returns CLM-0412, an approved baggage delay paid at 140.0, and nothing in the response holds an email, phone number, address or date of birth
+- [x] `GET /api/policy-wording` returns the text of `data/policy_wording.md`, and `GET /api/instructions` returns the text of `backend/instructions.md`
+- [x] `GET /api/handlers` returns Dana Whitfield, Marcus Oyelaran and Priya Raman
+- [x] An unknown policy, plan or customer returns 404
+- [x] Vitest tests cover the claim page, the not-found message, the instructions page and the routes
+- [x] In the Playwright MCP server, clicking CLM-1001 in the queue opens `#/claims/CLM-1001`. The page shows the story, the items at $245.00, $95.00 and $80.00, the total of $420.00, the four documents, the Premium policy for Rome, Italy, from Jun 10 to Jun 18, 2026, and CLM-0412 in the claim history
+- [x] The Playwright MCP server shows `#/claims/CLM-9999` as not found, and shows `#/instructions` with the instructions and no text field, editable area or save button
+- [x] At 375 pixels wide, the claim page has no horizontal scroll in either light or dark mode
+- [x] An end-to-end test opens a claim from the queue, then the instructions page
+- [x] `npm run check` passes
 
 ## Phase 3: The claim workflow and the $1,000 rule
 

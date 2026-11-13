@@ -1,8 +1,12 @@
+import { ClaimPage } from "./ClaimPage";
+import { Instructions } from "./Instructions";
 import { Queue } from "./Queue";
 import { links, useRoute, type Route } from "./router";
 
 function Page({ route }: Readonly<{ route: Route }>) {
   if (route.page === "queue") return <Queue />;
+  if (route.page === "claim") return <ClaimPage claimId={route.claimId} />;
+  if (route.page === "instructions") return <Instructions />;
   return (
     <p className="notice">
       There's no page here. <a href={links.queue}>Back to the queue</a>
